@@ -1,11 +1,87 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState } from 'react';
+import { AppState } from '../types/scheduling';
+import ProgressBar from '../components/ProgressBar';
+import DurationStep from '../components/steps/DurationStep';
+import TeamStep from '../components/steps/TeamStep';
+import AvailabilityStep from '../components/steps/AvailabilityStep';
+import InviteStep from '../components/steps/InviteStep';
+import ConfirmationStep from '../components/steps/ConfirmationStep';
+
+const initialState: AppState = {
+  currentStep: 1,
+  totalSteps: 5,
+  duration: null,
+  requiredMembers: new Set(),
+  optionalMembers: new Set(),
+  selectedDate: null,
+  selectedTime: null,
+  guestEmails: [],
+  steps: [
+    { name: 'Duration' },
+    { name: 'Team' },
+    { name: 'Date & Time' },
+    { name: 'Guests' },
+    { name: 'Confirm' }
+  ]
+};
 
 const Index = () => {
+  const [appState, setAppState] = useState<AppState>(initialState);
+
+  const handleStateChange = (newState: Partial<AppState>) => {
+    setAppState(prevState => ({ ...prevState, ...newState }));
+  };
+
+  const goNext = () => {
+    if (appState.currentStep < appState.totalSteps) {
+      handleStateChange({ currentStep: appState.currentStep + 1 });
+    }
+  };
+
+  const goBack = () => {
+    if (appState.currentStep > 1) {
+      handleStateChange({ currentStep: appState.currentStep - 1 });
+    }
+  };
+
+  const renderCurrentStep = () => {
+    const stepProps = {
+      appState,
+      onNext: goNext,
+      onBack: goBack,
+      onStateChange: handleStateChange
+    };
+
+    switch (appState.currentStep) {
+      case 1:
+        return <DurationStep {...stepProps} />;
+      case 2:
+        return <TeamStep {...stepProps} />;
+      case 3:
+        return <AvailabilityStep {...stepProps} />;
+      case 4:
+        return <InviteStep {...stepProps} />;
+      case 5:
+        return <ConfirmationStep {...stepProps} />;
+      default:
+        return <DurationStep {...stepProps} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-e3-space-blue">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        <header className="text-center mb-8">
+          <h1 className="heading text-e3-emerald">Schedule a Meeting</h1>
+          <p className="text-lg text-e3-white/80">Follow the steps below to book your session.</p>
+        </header>
+
+        <ProgressBar appState={appState} />
+
+        <main className="bg-e3-space-blue/50 p-6 rounded-lg shadow-2xl border border-e3-white/10 min-h-[400px]">
+          {renderCurrentStep()}
+        </main>
       </div>
     </div>
   );
