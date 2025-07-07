@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Settings } from 'lucide-react';
 import { AppState } from '../types/scheduling';
 import ProgressBar from '../components/ProgressBar';
 import DurationStep from '../components/steps/DurationStep';
@@ -72,7 +74,14 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-e3-space-blue">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        <header className="text-center mb-8">
+        <header className="text-center mb-8 relative">
+          <Link 
+            to="/team-config"
+            className="absolute top-0 right-0 p-2 text-e3-white/60 hover:text-e3-emerald transition-colors"
+            title="Team Configuration"
+          >
+            <Settings className="w-6 h-6" />
+          </Link>
           <h1 className="heading text-e3-emerald">Schedule a Meeting</h1>
           <p className="text-lg text-e3-white/80">Follow the steps below to book your session.</p>
         </header>
