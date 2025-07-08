@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader } from 'lucide-react';
+import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTeamData } from '../hooks/useTeamData';
 
 const TeamConfig: React.FC = () => {
@@ -47,8 +48,19 @@ const TeamConfig: React.FC = () => {
     <div className="min-h-screen bg-e3-space-blue p-6">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
-          <h1 className="heading text-e3-emerald mb-2">Team Configuration</h1>
-          <p className="text-e3-white/80">Manage team members, their roles, and calendar integrations</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="heading text-e3-emerald mb-2">Team Configuration</h1>
+              <p className="text-e3-white/80">Manage team members, their roles, and calendar integrations</p>
+            </div>
+            <Link
+              to="/admin-settings"
+              className="flex items-center gap-2 px-4 py-2 bg-e3-azure/20 text-e3-azure hover:bg-e3-azure/30 hover:text-e3-white transition rounded-lg"
+            >
+              <Cog className="w-4 h-4" />
+              Admin Settings
+            </Link>
+          </div>
         </header>
 
         {/* Tab Navigation */}
