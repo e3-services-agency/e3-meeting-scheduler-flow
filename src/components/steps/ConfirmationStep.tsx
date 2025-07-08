@@ -16,8 +16,8 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     onStateChange({
       currentStep: 1,
       duration: null,
-      requiredMembers: new Set(),
-      optionalMembers: new Set(),
+      requiredMembers: new Set<string>(),
+      optionalMembers: new Set<string>(),
       selectedDate: null,
       selectedTime: null,
       guestEmails: []

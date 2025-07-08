@@ -1,7 +1,7 @@
 
 import { mockTeam } from '../data/mockData';
 
-export function getCommonAvailableDates(requiredMemberIds: Set<number>): string[] {
+export function getCommonAvailableDates(requiredMemberIds: Set<string>): string[] {
   if (requiredMemberIds.size === 0) return [];
   
   const memberAvailabilities = Array.from(requiredMemberIds).map(id => {
@@ -16,7 +16,7 @@ export function getCommonAvailableDates(requiredMemberIds: Set<number>): string[
   return memberAvailabilities.reduce((a, b) => a.filter(c => b.includes(c)));
 }
 
-export function getCommonSlotsForDate(dateStr: string, requiredMemberIds: Set<number>): string[] {
+export function getCommonSlotsForDate(dateStr: string, requiredMemberIds: Set<string>): string[] {
   if (requiredMemberIds.size === 0 || !dateStr) return [];
   
   const memberSlots = Array.from(requiredMemberIds).map(id => {
