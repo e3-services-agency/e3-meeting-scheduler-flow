@@ -11,8 +11,9 @@ export const useTeamData = () => {
 
   const fetchClientTeams = async () => {
     try {
-      const { data, error } = await supabase
-        .from('client_teams' as any)
+      // Temporarily bypass type checking until Supabase types are regenerated
+      const { data, error } = await (supabase as any)
+        .from('client_teams')
         .select('*')
         .eq('is_active', true)
         .order('name');
@@ -40,8 +41,8 @@ export const useTeamData = () => {
   const fetchTeamMembers = async () => {
     try {
       // First get team members
-      const { data: membersData, error: membersError } = await supabase
-        .from('team_members' as any)
+      const { data: membersData, error: membersError } = await (supabase as any)
+        .from('team_members')
         .select('*')
         .eq('is_active', true)
         .order('name');
@@ -56,8 +57,8 @@ export const useTeamData = () => {
 
       // Then get their client team relationships
       const memberIds = membersData.map((member: any) => member.id);
-      const { data: relationshipsData, error: relationshipsError } = await supabase
-        .from('team_member_client_teams' as any)
+      const { data: relationshipsData, error: relationshipsError } = await (supabase as any)
+        .from('team_member_client_teams')
         .select(`
           team_member_id,
           client_teams:client_team_id (

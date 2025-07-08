@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Settings } from 'lucide-react';
@@ -14,8 +13,8 @@ const initialState: AppState = {
   currentStep: 1,
   totalSteps: 5,
   duration: null,
-  requiredMembers: new Set(),
-  optionalMembers: new Set(),
+  requiredMembers: new Set<string>(), // Changed to Set<string>
+  optionalMembers: new Set<string>(), // Changed to Set<string>
   selectedDate: null,
   selectedTime: null,
   guestEmails: [],

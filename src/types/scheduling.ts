@@ -1,6 +1,6 @@
 
 export interface TeamMember {
-  id: number;
+  id: string; // Changed from number to string for UUID
   name: string;
   role: string;
   email: string;
@@ -11,8 +11,8 @@ export interface AppState {
   currentStep: number;
   totalSteps: number;
   duration: number | null;
-  requiredMembers: Set<number>;
-  optionalMembers: Set<number>;
+  requiredMembers: Set<string>; // Changed from Set<number> to Set<string>
+  optionalMembers: Set<string>; // Changed from Set<number> to Set<string>
   selectedDate: string | null;
   selectedTime: string | null;
   guestEmails: string[];
