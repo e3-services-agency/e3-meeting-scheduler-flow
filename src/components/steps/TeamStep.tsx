@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
 import { StepProps } from '../../types/scheduling';
-import { mockTeam } from '../../data/mockData';
+import { useTeamData } from '../../hooks/useTeamData';
+import { Loader } from 'lucide-react';
 
 const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange }) => {
   const [error, setError] = useState('');
+  const { teamMembers, loading, error: dataError } = useTeamData();
 
-  const toggleMember = (memberId: number, type: 'required' | 'optional') => {
+  const toggleMember = (memberId: string, type: 'required' | 'optional') => {
     const newRequiredMembers = new Set(appState.requiredMembers);
     const newOptionalMembers = new Set(appState.optionalMembers);
     
@@ -41,19 +43,81 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
     onNext();
   };
 
+  if (loading) {
+    return (
+      <div className="step animate-fade-in flex items-center justify-center py-12">
+        <div className="flex items-center gap-3 text-e3-white">
+          <Loader className="w-6 h-6 animate-spin" />
+          <span>Loading team members...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (dataError) {
+    return (
+      <div className="step animate-fade-in">
+        <h2 className="sub-heading mb-6">2. Choose Team Members</h2>
+        <div className="text-center py-12">
+          <p className="text-e3-flame mb-4">{dataError}</p>
+          <p className="text-e3-white/60">Please check your database connection and try again.</p>
+        </div>
+        <div className="mt-8 flex justify-between">
+          <button onClick={onBack} className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition">
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (teamMembers.length === 0) {
+    return (
+      <div className="step animate-fade-in">
+        <h2 className="sub-heading mb-6">2. Choose Team Members</h2>
+        <div className="text-center py-12">
+          <p className="text-e3-white/60 mb-4">No team members found.</p>
+          <p className="text-e3-white/60">Please add team members in the Team Configuration page first.</p>
+        </div>
+        <div className="mt-8 flex justify-between">
+          <button onClick={onBack} className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition">
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="step animate-fade-in" aria-labelledby="step2-heading">
       <h2 id="step2-heading" className="sub-heading mb-6">2. Choose Team Members</h2>
       <div id="team-list" className="space-y-4">
-        {mockTeam.map(member => {
+        {teamMembers.map(member => {
           const isRequired = appState.requiredMembers.has(member.id);
           const isOptional = appState.optionalMembers.has(member.id);
           
           return (
             <div key={member.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
-              <div>
+              <div className="flex-1">
                 <p className="font-bold">{member.name}</p>
                 <p className="text-sm text-e3-white/70">{member.role}</p>
+                {member.clientTeams.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {member.clientTeams.slice(0, 3).map(team => (
+                      <span
+                        key={team.id}
+                        className="px-2 py-0.5 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
+                      >
+                        {team.name}
+                      </span>
+                    ))}
+                    {member.clientTeams.length > 3 && (
+                      <span className="px-2 py-0.5 text-e3-white/40 text-xs">
+                        +{member.clientTeams.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex items-center space-x-4 mt-3 sm:mt-0">
                 <label className="flex items-center cursor-pointer">

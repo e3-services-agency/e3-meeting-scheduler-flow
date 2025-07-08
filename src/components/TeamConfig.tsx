@@ -1,51 +1,47 @@
 
 import React, { useState } from 'react';
-import { Plus, Settings, Calendar, Users, Edit, Trash2 } from 'lucide-react';
-import { TeamMemberConfig, ClientTeam } from '../types/team';
+import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader } from 'lucide-react';
+import { useTeamData } from '../hooks/useTeamData';
 
 const TeamConfig: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'members' | 'teams'>('members');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddTeam, setShowAddTeam] = useState(false);
+  
+  const { teamMembers, clientTeams, loading, error, refetch } = useTeamData();
 
-  // Mock data - in real app this would come from Supabase
-  const [teamMembers, setTeamMembers] = useState<TeamMemberConfig[]>([
-    {
-      id: 1,
-      name: 'Alex Chen',
-      email: 'alex.chen@e3.com',
-      role: 'Business Consultant',
-      clientTeam: 'enterprise',
-      googleCalendarConnected: false,
-      isActive: true,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    },
-    {
-      id: 2,
-      name: 'Brenda Smith',
-      email: 'brenda.smith@e3.com',
-      role: 'Tech Consultant',
-      clientTeam: 'startup',
-      googleCalendarConnected: true,
-      googleCalendarId: 'brenda@e3.com',
-      isActive: true,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-01-01'
-    }
-  ]);
-
-  const [clientTeams, setClientTeams] = useState<ClientTeam[]>([
-    { id: 'enterprise', name: 'Enterprise Clients', description: 'Large enterprise clients', isActive: true },
-    { id: 'startup', name: 'Startup Clients', description: 'Early-stage startups', isActive: true },
-    { id: 'general', name: 'General Consulting', description: 'General consulting services', isActive: true }
-  ]);
-
-  const handleConnectGoogleCalendar = (memberId: number) => {
+  const handleConnectGoogleCalendar = (memberId: string) => {
     // This will be implemented with Google Calendar API
     console.log('Connecting Google Calendar for member:', memberId);
     alert('Google Calendar integration will be implemented next');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-e3-space-blue p-6 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-e3-white">
+          <Loader className="w-6 h-6 animate-spin" />
+          <span>Loading team data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-e3-space-blue p-6 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-e3-flame mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className="cta focusable"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-e3-space-blue p-6">
@@ -66,7 +62,7 @@ const TeamConfig: React.FC = () => {
             }`}
           >
             <Users className="w-4 h-4 mr-2" />
-            Team Members
+            Team Members ({teamMembers.length})
           </button>
           <button
             onClick={() => setActiveTab('teams')}
@@ -77,7 +73,7 @@ const TeamConfig: React.FC = () => {
             }`}
           >
             <Settings className="w-4 h-4 mr-2" />
-            Client Teams
+            Client Teams ({clientTeams.length})
           </button>
         </div>
 
@@ -95,59 +91,82 @@ const TeamConfig: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid gap-4">
-              {teamMembers.map(member => (
-                <div key={member.id} className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg">{member.name}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          member.isActive ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
-                        }`}>
-                          {member.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      <p className="text-e3-white/80 mb-1">{member.email}</p>
-                      <p className="text-e3-white/60 mb-2">Role: {member.role}</p>
-                      <p className="text-e3-white/60 mb-4">
-                        Client Team: {clientTeams.find(t => t.id === member.clientTeam)?.name || member.clientTeam}
-                      </p>
-                      
-                      {/* Calendar Status */}
-                      <div className="flex items-center gap-3">
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                          member.googleCalendarConnected 
-                            ? 'bg-e3-emerald/20 text-e3-emerald' 
-                            : 'bg-e3-flame/20 text-e3-flame'
-                        }`}>
-                          <Calendar className="w-3 h-3" />
-                          {member.googleCalendarConnected ? 'Calendar Connected' : 'Calendar Not Connected'}
+            {teamMembers.length === 0 ? (
+              <div className="text-center py-12 text-e3-white/60">
+                <Users className="w-12 h-12 mx-auto mb-4" />
+                <p>No team members found. Add your first team member to get started.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {teamMembers.map(member => (
+                  <div key={member.id} className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-bold text-lg">{member.name}</h3>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            member.isActive ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
+                          }`}>
+                            {member.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <p className="text-e3-white/80 mb-1">{member.email}</p>
+                        <p className="text-e3-white/60 mb-2">Role: {member.role}</p>
+                        
+                        {/* Client Teams */}
+                        <div className="mb-4">
+                          <p className="text-e3-white/60 text-sm mb-2">Client Teams:</p>
+                          {member.clientTeams.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {member.clientTeams.map(team => (
+                                <span
+                                  key={team.id}
+                                  className="px-2 py-1 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
+                                >
+                                  {team.name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-e3-white/40 text-sm">Not assigned to any client teams</span>
+                          )}
                         </div>
                         
-                        {!member.googleCalendarConnected && (
-                          <button
-                            onClick={() => handleConnectGoogleCalendar(member.id)}
-                            className="text-e3-azure hover:text-e3-white text-sm underline"
-                          >
-                            Connect Google Calendar
-                          </button>
-                        )}
+                        {/* Calendar Status */}
+                        <div className="flex items-center gap-3">
+                          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                            member.googleCalendarConnected 
+                              ? 'bg-e3-emerald/20 text-e3-emerald' 
+                              : 'bg-e3-flame/20 text-e3-flame'
+                          }`}>
+                            <Calendar className="w-3 h-3" />
+                            {member.googleCalendarConnected ? 'Calendar Connected' : 'Calendar Not Connected'}
+                          </div>
+                          
+                          {!member.googleCalendarConnected && (
+                            <button
+                              onClick={() => handleConnectGoogleCalendar(member.id)}
+                              className="text-e3-azure hover:text-e3-white text-sm underline"
+                            >
+                              Connect Google Calendar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <button className="p-2 text-e3-azure hover:text-e3-white transition">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button className="p-2 text-e3-flame hover:text-e3-white transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <button className="p-2 text-e3-azure hover:text-e3-white transition">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-e3-flame hover:text-e3-white transition">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -165,37 +184,50 @@ const TeamConfig: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid gap-4">
-              {clientTeams.map(team => (
-                <div key={team.id} className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg">{team.name}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          team.isActive ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
-                        }`}>
-                          {team.isActive ? 'Active' : 'Inactive'}
-                        </span>
+            {clientTeams.length === 0 ? (
+              <div className="text-center py-12 text-e3-white/60">
+                <Settings className="w-12 h-12 mx-auto mb-4" />
+                <p>No client teams found. Add your first client team to get started.</p>
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {clientTeams.map(team => {
+                  const teamMemberCount = teamMembers.filter(member => 
+                    member.clientTeams.some(ct => ct.id === team.id)
+                  ).length;
+
+                  return (
+                    <div key={team.id} className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-lg">{team.name}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              team.isActive ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
+                            }`}>
+                              {team.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                          <p className="text-e3-white/80 mb-2">{team.description}</p>
+                          <p className="text-e3-white/60 text-sm">
+                            Members: {teamMemberCount}
+                          </p>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <button className="p-2 text-e3-azure hover:text-e3-white transition">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button className="p-2 text-e3-flame hover:text-e3-white transition">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-e3-white/80 mb-2">{team.description}</p>
-                      <p className="text-e3-white/60 text-sm">
-                        Members: {teamMembers.filter(m => m.clientTeam === team.id).length}
-                      </p>
                     </div>
-                    
-                    <div className="flex gap-2">
-                      <button className="p-2 text-e3-azure hover:text-e3-white transition">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-e3-flame hover:text-e3-white transition">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

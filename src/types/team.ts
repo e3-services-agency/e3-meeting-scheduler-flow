@@ -1,10 +1,10 @@
 
 export interface TeamMemberConfig {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
-  clientTeam: string;
+  clientTeams: ClientTeam[]; // Changed from single clientTeam to array
   googleCalendarConnected: boolean;
   googleCalendarId?: string;
   isActive: boolean;
@@ -17,4 +17,40 @@ export interface ClientTeam {
   name: string;
   description?: string;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMemberClientTeam {
+  id: string;
+  teamMemberId: string;
+  clientTeamId: string;
+  createdAt: string;
+}
+
+export interface AdminGoogleCredentials {
+  id: string;
+  adminEmail: string;
+  accessToken: string;
+  refreshToken: string;
+  tokenExpiresAt: string;
+  domain: string;
+  scopes: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  googleEventId?: string;
+  organizerEmail: string;
+  attendeeEmails: string[];
+  status: 'scheduled' | 'cancelled' | 'completed';
+  clientTeamId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
