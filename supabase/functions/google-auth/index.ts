@@ -1,0 +1,220 @@
+
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// JWT signing function for Google Service Account
+async function createJWT(serviceAccountKey: any, userEmail?: string) {
+  const now = Math.floor(Date.now() / 1000);
+  const expiry = now + 3600; // 1 hour expiry
+
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT'
+  };
+
+  const payload = {
+    iss: serviceAccountKey.client_email,
+    scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: expiry,
+    iat: now,
+    ...(userEmail && { sub: userEmail }) // For domain-wide delegation
+  };
+
+  const encodedHeader = btoa(JSON.stringify(header)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const encodedPayload = btoa(JSON.stringify(payload)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  
+  const unsignedToken = `${encodedHeader}.${encodedPayload}`;
+
+  // Import the private key
+  const privateKeyPem = serviceAccountKey.private_key;
+  const privateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    new TextEncoder().encode(privateKeyPem.replace(/\\n/g, '\n')),
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      hash: 'SHA-256',
+    },
+    false,
+    ['sign']
+  );
+
+  // Sign the token
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    privateKey,
+    new TextEncoder().encode(unsignedToken)
+  );
+
+  const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+
+  return `${unsignedToken}.${encodedSignature}`;
+}
+
+// Get access token from Google
+async function getAccessToken(serviceAccountKey: any, userEmail?: string) {
+  try {
+    const jwt = await createJWT(serviceAccountKey, userEmail);
+    
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        assertion: jwt,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Token request failed: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { action, userEmail, eventData } = await req.json();
+    const serviceAccountKeyStr = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
+    
+    if (!serviceAccountKeyStr) {
+      throw new Error('Google Service Account key not configured');
+    }
+
+    const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+    console.log('Service account email:', serviceAccountKey.client_email);
+
+    switch (action) {
+      case 'test_connection': {
+        // Test the service account connection
+        const accessToken = await getAccessToken(serviceAccountKey);
+        
+        // Store admin credentials in database
+        const { error: insertError } = await supabase
+          .from('admin_google_credentials')
+          .upsert({
+            admin_email: serviceAccountKey.client_email,
+            access_token: accessToken,
+            refresh_token: 'service_account_token',
+            token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+            domain: extractDomainFromEmail(serviceAccountKey.client_email),
+            scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events']
+          });
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Google Service Account connected successfully',
+          serviceAccountEmail: serviceAccountKey.client_email
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'create_event': {
+        if (!userEmail || !eventData) {
+          throw new Error('User email and event data required');
+        }
+
+        const accessToken = await getAccessToken(serviceAccountKey, userEmail);
+        
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${userEmail}/events`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(eventData),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Calendar API error: ${error}`);
+        }
+
+        const event = await response.json();
+        return new Response(JSON.stringify({ success: true, event }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'check_availability': {
+        if (!userEmail) {
+          throw new Error('User email required');
+        }
+
+        const accessToken = await getAccessToken(serviceAccountKey, userEmail);
+        
+        const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timeMin: eventData.timeMin,
+            timeMax: eventData.timeMax,
+            items: [{ id: userEmail }]
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Calendar API error: ${error}`);
+        }
+
+        const availability = await response.json();
+        return new Response(JSON.stringify({ success: true, availability }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      default:
+        return new Response(JSON.stringify({ error: 'Invalid action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+  } catch (error) {
+    console.error('Error in google-auth function:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: error.stack 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+
+function extractDomainFromEmail(email: string): string {
+  return email.split('@')[1] || 'unknown';
+}

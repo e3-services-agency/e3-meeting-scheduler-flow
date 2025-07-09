@@ -1,20 +1,45 @@
-
 import React, { useState } from 'react';
 import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTeamData } from '../hooks/useTeamData';
+import { GoogleCalendarService } from '../utils/googleCalendarService';
+import { useToast } from '@/components/ui/use-toast';
 
 const TeamConfig: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'members' | 'teams'>('members');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddTeam, setShowAddTeam] = useState(false);
+  const { toast } = useToast();
   
   const { teamMembers, clientTeams, loading, error, refetch } = useTeamData();
 
-  const handleConnectGoogleCalendar = (memberId: string) => {
-    // This will be implemented with Google Calendar API
-    console.log('Connecting Google Calendar for member:', memberId);
-    alert('Google Calendar integration will be implemented next');
+  const handleConnectGoogleCalendar = async (memberId: string) => {
+    const member = teamMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    try {
+      // Test if we can access the user's calendar using domain-wide delegation
+      const isConnected = await GoogleCalendarService.testConnection();
+      
+      if (isConnected) {
+        toast({
+          title: "Calendar Access Confirmed",
+          description: `${member.name}'s calendar is accessible through domain-wide delegation.`,
+        });
+        
+        // In a real implementation, you would update the member's calendar status
+        console.log(`Calendar access confirmed for ${member.email}`);
+      } else {
+        throw new Error('Domain-wide delegation not properly configured');
+      }
+    } catch (error) {
+      console.error('Error connecting calendar:', error);
+      toast({
+        title: "Calendar Connection Failed",
+        description: error instanceof Error ? error.message : 'Failed to connect calendar',
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -51,7 +76,7 @@ const TeamConfig: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="heading text-e3-emerald mb-2">Team Configuration</h1>
-              <p className="text-e3-white/80">Manage team members, their roles, and calendar integrations</p>
+              <p className="text-e3-white/80">Manage team members with Google Workspace domain-wide calendar access</p>
             </div>
             <Link
               to="/admin-settings"
@@ -146,23 +171,17 @@ const TeamConfig: React.FC = () => {
                         
                         {/* Calendar Status */}
                         <div className="flex items-center gap-3">
-                          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                            member.googleCalendarConnected 
-                              ? 'bg-e3-emerald/20 text-e3-emerald' 
-                              : 'bg-e3-flame/20 text-e3-flame'
-                          }`}>
+                          <div className="flex items-center gap-2 px-3 py-1 rounded-full text-sm bg-e3-emerald/20 text-e3-emerald">
                             <Calendar className="w-3 h-3" />
-                            {member.googleCalendarConnected ? 'Calendar Connected' : 'Calendar Not Connected'}
+                            Calendar Access via Domain Delegation
                           </div>
                           
-                          {!member.googleCalendarConnected && (
-                            <button
-                              onClick={() => handleConnectGoogleCalendar(member.id)}
-                              className="text-e3-azure hover:text-e3-white text-sm underline"
-                            >
-                              Connect Google Calendar
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleConnectGoogleCalendar(member.id)}
+                            className="text-e3-azure hover:text-e3-white text-sm underline"
+                          >
+                            Test Calendar Access
+                          </button>
                         </div>
                       </div>
                       

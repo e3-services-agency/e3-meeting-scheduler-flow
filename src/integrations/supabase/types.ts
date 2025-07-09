@@ -14,7 +14,221 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_google_credentials: {
+        Row: {
+          access_token: string
+          admin_email: string
+          created_at: string
+          domain: string
+          id: string
+          refresh_token: string
+          scopes: string[]
+          token_expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          admin_email: string
+          created_at?: string
+          domain: string
+          id?: string
+          refresh_token: string
+          scopes?: string[]
+          token_expires_at: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          admin_email?: string
+          created_at?: string
+          domain?: string
+          id?: string
+          refresh_token?: string
+          scopes?: string[]
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meetings: {
+        Row: {
+          attendee_emails: string[]
+          client_team_id: string | null
+          created_at: string
+          description: string | null
+          end_time: string
+          google_event_id: string | null
+          id: string
+          organizer_email: string
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attendee_emails?: string[]
+          client_team_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time: string
+          google_event_id?: string | null
+          id?: string
+          organizer_email: string
+          start_time: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attendee_emails?: string[]
+          client_team_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          google_event_id?: string | null
+          id?: string
+          organizer_email?: string
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_client_team_id_fkey"
+            columns: ["client_team_id"]
+            isOneToOne: false
+            referencedRelation: "client_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_states: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          provider: string
+          state: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider: string
+          state: string
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          provider?: string
+          state?: string
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      team_member_client_teams: {
+        Row: {
+          client_team_id: string
+          created_at: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          client_team_id: string
+          created_at?: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          client_team_id?: string
+          created_at?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_client_teams_client_team_id_fkey"
+            columns: ["client_team_id"]
+            isOneToOne: false
+            referencedRelation: "client_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_client_teams_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string
+          google_calendar_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          google_calendar_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          google_calendar_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
