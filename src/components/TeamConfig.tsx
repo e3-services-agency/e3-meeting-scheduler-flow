@@ -1,9 +1,12 @@
+
 import React, { useState } from 'react';
 import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTeamData } from '../hooks/useTeamData';
 import { GoogleCalendarService } from '../utils/googleCalendarService';
 import { useToast } from '@/components/ui/use-toast';
+import AddMemberForm from './forms/AddMemberForm';
+import AddTeamForm from './forms/AddTeamForm';
 
 const TeamConfig: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'members' | 'teams'>('members');
@@ -40,6 +43,22 @@ const TeamConfig: React.FC = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleAddMemberSuccess = () => {
+    refetch();
+    toast({
+      title: "Success",
+      description: "Team member added and calendar access configured",
+    });
+  };
+
+  const handleAddTeamSuccess = () => {
+    refetch();
+    toast({
+      title: "Success",
+      description: "Client team created successfully",
+    });
   };
 
   if (loading) {
@@ -260,6 +279,23 @@ const TeamConfig: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Add Member Form Modal */}
+        {showAddMember && (
+          <AddMemberForm
+            onClose={() => setShowAddMember(false)}
+            onSuccess={handleAddMemberSuccess}
+            clientTeams={clientTeams}
+          />
+        )}
+
+        {/* Add Team Form Modal */}
+        {showAddTeam && (
+          <AddTeamForm
+            onClose={() => setShowAddTeam(false)}
+            onSuccess={handleAddTeamSuccess}
+          />
         )}
       </div>
     </div>
