@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.3';
@@ -22,13 +21,19 @@ async function createJWT(serviceAccountKey: any, userEmail?: string) {
     typ: 'JWT'
   };
 
+  const scopes = [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/admin.directory.user.readonly'
+  ].join(' ');
+
   const payload = {
     iss: serviceAccountKey.client_email,
-    scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+    scope: scopes,
     aud: 'https://oauth2.googleapis.com/token',
     exp: expiry,
     iat: now,
-    ...(userEmail && { sub: userEmail }) // For domain-wide delegation
+    ...(userEmail && { sub: userEmail })
   };
 
   const encodedHeader = btoa(JSON.stringify(header)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -99,7 +104,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, userEmail, eventData } = await req.json();
+    const { action, userEmail, eventData, email } = await req.json();
     const serviceAccountKeyStr = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
     
     if (!serviceAccountKeyStr) {
@@ -123,7 +128,7 @@ serve(async (req) => {
             refresh_token: 'service_account_token',
             token_expires_at: new Date(Date.now() + 3600000).toISOString(),
             domain: extractDomainFromEmail(serviceAccountKey.client_email),
-            scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events']
+            scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/admin.directory.user.readonly']
           });
 
         if (insertError) {
@@ -134,6 +139,83 @@ serve(async (req) => {
           success: true, 
           message: 'Google Service Account connected successfully',
           serviceAccountEmail: serviceAccountKey.client_email
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'list_workspace_users': {
+        const adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+        const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
+        
+        const response = await fetch('https://admin.googleapis.com/admin/directory/v1/users?domain=' + extractDomainFromEmail(serviceAccountKey.client_email) + '&maxResults=500', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Directory API error: ${error}`);
+        }
+
+        const data = await response.json();
+        return new Response(JSON.stringify({ 
+          success: true, 
+          users: data.users || [] 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'validate_email': {
+        if (!email) {
+          throw new Error('Email is required');
+        }
+
+        const adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+        const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
+        
+        const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${email}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          valid: response.ok 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      case 'get_user_profile': {
+        if (!email) {
+          throw new Error('Email is required');
+        }
+
+        const adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+        const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
+        
+        const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${email}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Directory API error: ${error}`);
+        }
+
+        const userData = await response.json();
+        return new Response(JSON.stringify({ 
+          success: true, 
+          user: userData 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -217,4 +299,11 @@ serve(async (req) => {
 
 function extractDomainFromEmail(email: string): string {
   return email.split('@')[1] || 'unknown';
+}
+
+function extractAdminEmailFromDomain(serviceAccountEmail: string): string {
+  // For service accounts, we need to impersonate an admin user
+  // This should be configured to use a real admin email from your domain
+  const domain = extractDomainFromEmail(serviceAccountEmail);
+  return `admin@${domain}`; // You may need to adjust this based on your admin setup
 }

@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
-import { X, User, Mail, UserCheck, Loader } from 'lucide-react';
+import { X, UserCheck, Loader } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ClientTeam } from '@/types/team';
+import { GoogleWorkspaceService, GoogleWorkspaceUser } from '../../utils/googleWorkspaceService';
+import WorkspaceUserSelector from './WorkspaceUserSelector';
 
 interface AddMemberFormProps {
   onClose: () => void;
@@ -12,9 +14,8 @@ interface AddMemberFormProps {
 }
 
 const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clientTeams }) => {
+  const [selectedUser, setSelectedUser] = useState<GoogleWorkspaceUser | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
     role: 'Team Member',
     clientTeamIds: [] as string[]
   });
@@ -23,10 +24,11 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) {
+    
+    if (!selectedUser) {
       toast({
         title: "Validation Error",
-        description: "Name and email are required",
+        description: "Please select a team member from your workspace",
         variant: "destructive",
       });
       return;
@@ -35,14 +37,32 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
     setIsSubmitting(true);
 
     try {
-      // Create team member
+      // Validate that the email exists in workspace
+      const isValid = await GoogleWorkspaceService.validateWorkspaceEmail(selectedUser.primaryEmail);
+      if (!isValid) {
+        throw new Error('Selected user is not valid or not found in workspace');
+      }
+
+      // Check if user already exists
+      const { data: existingMember } = await (supabase as any)
+        .from('team_members')
+        .select('id')
+        .eq('email', selectedUser.primaryEmail)
+        .single();
+
+      if (existingMember) {
+        throw new Error('This team member has already been added');
+      }
+
+      // Create team member with Google profile data
       const { data: memberData, error: memberError } = await (supabase as any)
         .from('team_members')
         .insert({
-          name: formData.name,
-          email: formData.email,
+          name: selectedUser.name.fullName,
+          email: selectedUser.primaryEmail,
           role: formData.role,
-          is_active: true
+          is_active: true,
+          google_calendar_id: selectedUser.primaryEmail // Use email as calendar ID for domain delegation
         })
         .select()
         .single();
@@ -69,7 +89,7 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
 
       toast({
         title: "Team Member Added",
-        description: `${formData.name} has been added successfully with Google Calendar access`,
+        description: `${selectedUser.name.fullName} has been added successfully with Google Calendar access`,
       });
 
       onSuccess();
@@ -97,7 +117,7 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-e3-space-blue rounded-lg p-6 w-full max-w-md border border-e3-white/10">
+      <div className="bg-e3-space-blue rounded-lg p-6 w-full max-w-md border border-e3-white/10 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-e3-emerald">Add Team Member</h2>
           <button
@@ -109,35 +129,10 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-e3-white/80 text-sm font-medium mb-2">
-              <User className="w-4 h-4 inline mr-2" />
-              Name
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white placeholder-e3-white/50 focus:border-e3-azure focus:outline-none"
-              placeholder="Enter full name"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-e3-white/80 text-sm font-medium mb-2">
-              <Mail className="w-4 h-4 inline mr-2" />
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white placeholder-e3-white/50 focus:border-e3-azure focus:outline-none"
-              placeholder="Enter email address"
-              required
-            />
-          </div>
+          <WorkspaceUserSelector
+            selectedUser={selectedUser}
+            onUserSelect={setSelectedUser}
+          />
 
           <div>
             <label className="block text-e3-white/80 text-sm font-medium mb-2">
@@ -187,7 +182,7 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !selectedUser}
               className="flex-1 py-2 px-4 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition disabled:opacity-50 flex items-center justify-center"
             >
               {isSubmitting ? (
