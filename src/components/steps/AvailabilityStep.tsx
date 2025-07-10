@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
 import { useTeamData } from '../../hooks/useTeamData';
-import { findCommonAvailableSlots } from '../../utils/availabilityUtils';
+import { findCommonAvailableSlots, getAvailableDatesForMembers } from '../../utils/availabilityUtils';
 import { StepProps, TimeSlot } from '../../types/scheduling';
 
 interface AvailabilityStepProps extends StepProps {}
@@ -11,14 +11,17 @@ interface AvailabilityStepProps extends StepProps {}
 const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, onBack, onStateChange }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingDates, setLoadingDates] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date()));
+  const [error, setError] = useState<string | null>(null);
   
   const { teamMembers } = useTeamData();
 
   // Filter team members who have calendar connections
   const connectedMembers = teamMembers.filter(member => 
-    member.googleCalendarConnected || member.email // Use email as indicator for domain delegation
+    member.googleCalendarConnected || member.email
   );
 
   // Get selected team members with calendar access
@@ -26,24 +29,61 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     .map(memberId => connectedMembers.find(m => m.id === memberId))
     .filter(Boolean);
 
+  const selectedMemberEmails = selectedMembers.map(member => member?.email).filter(Boolean) as string[];
+
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i));
 
+  // Load available dates when selected members change
+  useEffect(() => {
+    const loadAvailableDates = async () => {
+      if (selectedMemberEmails.length === 0) {
+        setAvailableDates([]);
+        return;
+      }
+
+      setLoadingDates(true);
+      setError(null);
+      
+      try {
+        console.log('Loading available dates for members:', selectedMemberEmails);
+        const dates = await getAvailableDatesForMembers(selectedMemberEmails, appState.duration || 60);
+        console.log('Available dates loaded:', dates);
+        setAvailableDates(dates);
+      } catch (error) {
+        console.error('Error loading available dates:', error);
+        setError('Failed to load available dates');
+        setAvailableDates([]);
+      } finally {
+        setLoadingDates(false);
+      }
+    };
+
+    loadAvailableDates();
+  }, [selectedMemberEmails, appState.duration]);
+
+  // Load availability for selected date
   const loadAvailability = async (date: Date) => {
-    if (selectedMembers.length === 0) return;
+    if (selectedMemberEmails.length === 0) {
+      setAvailableSlots([]);
+      return;
+    }
 
     setLoading(true);
+    setError(null);
+    
     try {
-      const memberEmails = selectedMembers.map(member => member?.email).filter(Boolean) as string[];
-      
+      console.log('Loading availability for date:', date, 'members:', selectedMemberEmails);
       const slots = await findCommonAvailableSlots(
-        memberEmails,
+        selectedMemberEmails,
         date,
         appState.duration || 60
       );
       
+      console.log('Available slots loaded:', slots);
       setAvailableSlots(slots);
     } catch (error) {
       console.error('Error loading availability:', error);
+      setError('Failed to load availability');
       setAvailableSlots([]);
     } finally {
       setLoading(false);
@@ -54,14 +94,16 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     if (selectedDate) {
       loadAvailability(selectedDate);
     }
-  }, [selectedDate, selectedMembers]);
+  }, [selectedDate, selectedMemberEmails, appState.duration]);
 
   const handleDateSelect = (date: Date) => {
+    console.log('Date selected:', date);
     setSelectedDate(date);
     onStateChange({ selectedDate: date.toISOString() });
   };
 
   const handleTimeSelect = (slot: TimeSlot) => {
+    console.log('Time slot selected:', slot);
     onStateChange({ 
       selectedTime: slot.start,
       selectedDate: selectedDate?.toISOString()
@@ -74,6 +116,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
   const isDateSelected = (date: Date) => {
     return selectedDate && isSameDay(date, selectedDate);
+  };
+
+  const isDateAvailable = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return availableDates.includes(dateStr);
   };
 
   const isTimeSelected = (slot: TimeSlot) => {
@@ -128,6 +175,12 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Calendar */}
         <div className="bg-e3-space-blue/50 rounded-lg p-6 border border-e3-white/10">
@@ -151,6 +204,13 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             </div>
           </div>
 
+          {loadingDates && (
+            <div className="text-center py-4">
+              <div className="w-6 h-6 border-2 border-e3-azure/30 border-t-e3-azure rounded-full animate-spin mx-auto mb-2" />
+              <p className="text-e3-white/60 text-sm">Loading available dates...</p>
+            </div>
+          )}
+
           <div className="grid grid-cols-7 gap-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="text-center text-sm font-medium text-e3-white/60 py-2">
@@ -162,25 +222,31 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
               const isToday = isSameDay(date, new Date());
               const isSelected = isDateSelected(date);
               const isPast = date < new Date() && !isToday;
+              const hasAvailability = isDateAvailable(date);
               
               return (
                 <button
                   key={index}
                   onClick={() => !isPast && handleDateSelect(date)}
-                  disabled={isPast}
+                  disabled={isPast || (!hasAvailability && !loadingDates)}
                   className={`
-                    aspect-square p-2 rounded-lg text-sm font-medium transition
+                    aspect-square p-2 rounded-lg text-sm font-medium transition relative
                     ${isSelected 
                       ? 'bg-e3-azure text-e3-white' 
                       : isToday
                         ? 'bg-e3-emerald/20 text-e3-emerald hover:bg-e3-emerald/30'
                         : isPast
                           ? 'text-e3-white/30 cursor-not-allowed'
-                          : 'text-e3-white hover:bg-e3-white/10'
+                          : hasAvailability
+                            ? 'text-e3-white hover:bg-e3-white/10 ring-1 ring-e3-emerald/50'
+                            : 'text-e3-white/50 cursor-not-allowed'
                     }
                   `}
                 >
                   {format(date, 'd')}
+                  {hasAvailability && !isSelected && (
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-e3-emerald rounded-full" />
+                  )}
                 </button>
               );
             })}
@@ -222,8 +288,8 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                     className={`
                       p-3 rounded-lg text-sm font-medium transition
                       ${isSelected 
-                        ? 'bg-e3-azure text-e3-white' 
-                        : 'bg-e3-space-blue border border-e3-white/20 text-e3-white hover:bg-e3-white/10'
+                        ? 'bg-e3-emerald text-e3-white shadow-lg' 
+                        : 'bg-e3-space-blue border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50'
                       }
                     `}
                   >
