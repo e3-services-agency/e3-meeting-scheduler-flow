@@ -21,6 +21,8 @@ export interface GoogleCalendarEvent {
 export class GoogleCalendarService {
   static async createEvent(userEmail: string, eventData: GoogleCalendarEvent): Promise<any> {
     try {
+      console.log('Creating calendar event for:', userEmail, eventData);
+      
       const { data, error } = await supabase.functions.invoke('google-auth', {
         body: {
           action: 'create_event',
@@ -30,13 +32,16 @@ export class GoogleCalendarService {
       });
 
       if (error) {
+        console.error('Function error:', error);
         throw new Error(`Function error: ${error.message}`);
       }
 
       if (data?.error) {
+        console.error('Google Calendar API error:', data.error);
         throw new Error(data.error);
       }
 
+      console.log('Event created successfully:', data);
       return data;
     } catch (error) {
       console.error('Error creating calendar event:', error);
@@ -50,6 +55,8 @@ export class GoogleCalendarService {
     timeMax: string
   ): Promise<any> {
     try {
+      console.log('Checking availability for:', userEmail, 'from', timeMin, 'to', timeMax);
+      
       const { data, error } = await supabase.functions.invoke('google-auth', {
         body: {
           action: 'check_availability',
@@ -59,13 +66,16 @@ export class GoogleCalendarService {
       });
 
       if (error) {
+        console.error('Function error:', error);
         throw new Error(`Function error: ${error.message}`);
       }
 
       if (data?.error) {
+        console.error('Google Calendar API error:', data.error);
         throw new Error(data.error);
       }
 
+      console.log('Availability check result:', data);
       return data;
     } catch (error) {
       console.error('Error checking availability:', error);

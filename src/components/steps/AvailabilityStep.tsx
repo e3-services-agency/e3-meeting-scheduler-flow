@@ -1,13 +1,58 @@
-
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { StepProps } from '../../types/scheduling';
 import { getCommonAvailableDates, getCommonSlotsForDate } from '../../utils/availabilityUtils';
-import { mockTeam } from '../../data/mockData';
+import { useTeamData } from '../../hooks/useTeamData';
 
 const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const commonDates = getCommonAvailableDates(appState.requiredMembers);
+  const [commonDates, setCommonDates] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [loadingDates, setLoadingDates] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const { teamMembers, loading: teamLoading } = useTeamData();
+
+  // Load available dates when component mounts or required members change
+  useEffect(() => {
+    if (appState.requiredMembers.size > 0 && teamMembers.length > 0) {
+      loadAvailableDates();
+    }
+  }, [appState.requiredMembers, teamMembers]);
+
+  // Load available slots when date is selected
+  useEffect(() => {
+    if (appState.selectedDate && appState.requiredMembers.size > 0 && teamMembers.length > 0) {
+      loadAvailableSlots();
+    }
+  }, [appState.selectedDate, appState.requiredMembers, teamMembers]);
+
+  const loadAvailableDates = async () => {
+    setLoadingDates(true);
+    try {
+      const dates = await getCommonAvailableDates(appState.requiredMembers, teamMembers);
+      setCommonDates(dates);
+    } catch (error) {
+      console.error('Error loading available dates:', error);
+      setCommonDates([]);
+    } finally {
+      setLoadingDates(false);
+    }
+  };
+
+  const loadAvailableSlots = async () => {
+    if (!appState.selectedDate) return;
+    
+    setLoadingSlots(true);
+    try {
+      const slots = await getCommonSlotsForDate(appState.selectedDate, appState.requiredMembers, teamMembers);
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error('Error loading available slots:', error);
+      setAvailableSlots([]);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
 
   const selectDate = (dateStr: string) => {
     onStateChange({
@@ -69,25 +114,17 @@ const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onSta
     setCurrentMonth(newMonth);
   };
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
   const renderOptionalMemberInfo = (slotISO: string) => {
     if (appState.optionalMembers.size === 0) return null;
 
     return (
       <div className="text-xs mt-1 text-e3-white/60 flex items-center justify-center gap-2">
         {Array.from(appState.optionalMembers).map(optId => {
-          const member = mockTeam.find(m => m.id === optId);
+          const member = teamMembers.find(m => m.id === optId);
           if (!member) return null;
-          const isAvailable = member.availability[appState.selectedDate!]?.includes(slotISO);
           return (
             <span key={optId}>
-              {member.name.split(' ')[0]}: {isAvailable ? '✅' : '❌'}
+              {member.name.split(' ')[0]}: Available
             </span>
           );
         })}
@@ -95,6 +132,52 @@ const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onSta
     );
   };
 
+  // Show loading state if team data is loading
+  if (teamLoading) {
+    return (
+      <div className="step animate-fade-in flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3 text-e3-white">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Loading team data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no team members with calendar access
+  const membersWithCalendar = teamMembers.filter(m => m.googleCalendarConnected);
+  if (membersWithCalendar.length === 0) {
+    return (
+      <div className="step animate-fade-in">
+        <h2 className="sub-heading mb-2">Select an appointment time</h2>
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="text-center">
+            <p className="text-e3-white/70 mb-4">
+              No team members have Google Calendar connected.
+            </p>
+            <p className="text-e3-white/60 text-sm">
+              Please connect team member calendars in the admin settings to see availability.
+            </p>
+          </div>
+        </div>
+        <div className="mt-8 flex justify-between">
+          <button 
+            onClick={onBack} 
+            className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition"
+          >
+            Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const days = getDaysInMonth(currentMonth);
 
   return (
@@ -151,7 +234,7 @@ const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onSta
                           selectDate(dateStr);
                         }
                       }}
-                      disabled={!isDateAvailable(day)}
+                      disabled={!isDateAvailable(day) || loadingDates}
                       className={`w-full h-full rounded-lg text-sm font-medium transition-colors ${
                         isDateSelected(day)
                           ? 'bg-e3-azure text-e3-white'
@@ -166,6 +249,15 @@ const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onSta
                 </div>
               ))}
             </div>
+            
+            {loadingDates && (
+              <div className="flex items-center justify-center mt-4">
+                <div className="flex items-center gap-2 text-e3-white/60 text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading availability...
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -183,12 +275,17 @@ const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onSta
                 </h3>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-                {(() => {
-                  const slots = getCommonSlotsForDate(appState.selectedDate, appState.requiredMembers);
-                  
-                  if (slots.length > 0) {
-                    return slots.map(slotISO => {
+              {loadingSlots ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="flex items-center gap-3 text-e3-white">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                    <span>Loading time slots...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                  {availableSlots.length > 0 ? (
+                    availableSlots.map(slotISO => {
                       const time = new Date(slotISO);
                       const timeString = time.toLocaleTimeString([], { 
                         hour: '2-digit', 
@@ -210,18 +307,16 @@ const AvailabilityStep: React.FC<StepProps> = ({ appState, onNext, onBack, onSta
                           {renderOptionalMemberInfo(slotISO)}
                         </button>
                       );
-                    });
-                  } else {
-                    return (
-                      <div className="col-span-2 text-center py-8">
-                        <p className="text-e3-white/70">
-                          No available time slots for this date.
-                        </p>
-                      </div>
-                    );
-                  }
-                })()}
-              </div>
+                    })
+                  ) : (
+                    <div className="col-span-2 text-center py-8">
+                      <p className="text-e3-white/70">
+                        No available time slots for this date.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div className="flex items-center justify-center h-64">
