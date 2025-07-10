@@ -4,16 +4,11 @@ import { Calendar, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
 import { useTeamData } from '../../hooks/useTeamData';
 import { findCommonAvailableSlots } from '../../utils/availabilityUtils';
-import { SchedulingData, TimeSlot } from '../../types/scheduling';
+import { StepProps, TimeSlot } from '../../types/scheduling';
 
-interface AvailabilityStepProps {
-  data: SchedulingData;
-  onUpdate: (updates: Partial<SchedulingData>) => void;
-  onNext: () => void;
-  onBack: () => void;
-}
+interface AvailabilityStepProps extends StepProps {}
 
-const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ data, onUpdate, onNext, onBack }) => {
+const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, onBack, onStateChange }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,7 +22,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ data, onUpdate, onN
   );
 
   // Get selected team members with calendar access
-  const selectedMembers = data.selectedTeamMembers
+  const selectedMembers = Array.from(appState.requiredMembers)
     .map(memberId => connectedMembers.find(m => m.id === memberId))
     .filter(Boolean);
 
@@ -43,7 +38,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ data, onUpdate, onN
       const slots = await findCommonAvailableSlots(
         memberEmails,
         date,
-        data.duration || 60
+        appState.duration || 60
       );
       
       setAvailableSlots(slots);
@@ -63,11 +58,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ data, onUpdate, onN
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    onUpdate({ selectedDate: date.toISOString() });
+    onStateChange({ selectedDate: date.toISOString() });
   };
 
   const handleTimeSelect = (slot: TimeSlot) => {
-    onUpdate({ 
+    onStateChange({ 
       selectedTime: slot.start,
       selectedDate: selectedDate?.toISOString()
     });
@@ -82,7 +77,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ data, onUpdate, onN
   };
 
   const isTimeSelected = (slot: TimeSlot) => {
-    return data.selectedTime === slot.start;
+    return appState.selectedTime === slot.start;
   };
 
   // Check if we have any team members with calendar access
@@ -265,7 +260,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ data, onUpdate, onN
         </button>
         <button
           onClick={onNext}
-          disabled={!data.selectedDate || !data.selectedTime}
+          disabled={!appState.selectedDate || !appState.selectedTime}
           className="px-6 py-2 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continue

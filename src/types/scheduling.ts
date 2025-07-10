@@ -25,3 +25,16 @@ export interface StepProps {
   onBack: () => void;
   onStateChange: (newState: Partial<AppState>) => void;
 }
+
+// Adding missing interfaces used in AvailabilityStep
+export interface SchedulingData {
+  duration: number;
+  selectedTeamMembers: string[];
+  selectedDate?: string;
+  selectedTime?: string;
+}
+
+export interface TimeSlot {
+  start: string;
+  end: string;
+}

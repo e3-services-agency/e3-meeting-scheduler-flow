@@ -175,3 +175,65 @@ export async function getCommonSlotsForDate(
   
   return availableSlots;
 }
+
+// Adding the missing export that AvailabilityStep is trying to import
+export async function findCommonAvailableSlots(
+  memberEmails: string[],
+  date: Date,
+  durationMinutes: number
+): Promise<Array<{ start: string; end: string }>> {
+  const dateStr = date.toISOString().split('T')[0];
+  const timeSlots = generateTimeSlots(dateStr);
+  const availableSlots: Array<{ start: string; end: string }> = [];
+  
+  for (const slot of timeSlots) {
+    let slotAvailable = true;
+    
+    for (const email of memberEmails) {
+      try {
+        const slotStart = slot;
+        const slotEnd = new Date(slot);
+        slotEnd.setMinutes(slotEnd.getMinutes() + durationMinutes);
+        
+        const availability = await GoogleCalendarService.checkAvailability(
+          email,
+          slotStart,
+          slotEnd.toISOString()
+        );
+        
+        // Check if this time slot conflicts with any busy period
+        if (availability?.calendars?.[email]?.busy?.length > 0) {
+          const hasConflict = availability.calendars[email].busy.some((busy: any) => {
+            const busyStart = new Date(busy.start);
+            const busyEnd = new Date(busy.end);
+            const checkStart = new Date(slotStart);
+            const checkEnd = new Date(slotEnd);
+            
+            // Check for overlap
+            return (checkStart < busyEnd && checkEnd > busyStart);
+          });
+          
+          if (hasConflict) {
+            slotAvailable = false;
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(`Error checking slot availability for ${email}:`, error);
+        slotAvailable = false;
+        break;
+      }
+    }
+    
+    if (slotAvailable) {
+      const endTime = new Date(slot);
+      endTime.setMinutes(endTime.getMinutes() + durationMinutes);
+      availableSlots.push({
+        start: slot,
+        end: endTime.toISOString()
+      });
+    }
+  }
+  
+  return availableSlots;
+}
