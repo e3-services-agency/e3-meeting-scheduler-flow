@@ -111,8 +111,14 @@ async function getAccessToken(serviceAccountKey: any, userEmail?: string) {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Token request failed: ${error}`);
+      const errorData = await response.text();
+      console.error('Token request failed:', errorData);
+      
+      if (errorData.includes('unauthorized_client')) {
+        throw new Error(`Domain-wide delegation not properly configured. Please ensure:\n1. Service account has domain-wide delegation enabled\n2. Admin has authorized these scopes in Google Workspace Admin Console:\n   - https://www.googleapis.com/auth/calendar\n   - https://www.googleapis.com/auth/calendar.events\n   - https://www.googleapis.com/auth/admin.directory.user.readonly\n\nDetailed error: ${errorData}`);
+      }
+      
+      throw new Error(`Token request failed: ${errorData}`);
     }
 
     const data = await response.json();
