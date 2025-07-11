@@ -170,7 +170,27 @@ serve(async (req) => {
       }
 
       case 'list_workspace_users': {
-        const adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+        // First, try to get the admin email from the stored credentials
+        const { data: credData } = await supabase
+          .from('admin_google_credentials')
+          .select('admin_email')
+          .single();
+        
+        let adminEmail;
+        if (credData?.admin_email && !credData.admin_email.includes('gserviceaccount')) {
+          // Use stored admin email if it's not a service account email
+          adminEmail = credData.admin_email;
+        } else {
+          // Fallback to extracting from service account or use environment variable
+          const configuredAdminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
+          if (configuredAdminEmail) {
+            adminEmail = configuredAdminEmail;
+          } else {
+            adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+          }
+        }
+        
+        console.log('Using admin email for impersonation:', adminEmail);
         const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
         
         const response = await fetch('https://admin.googleapis.com/admin/directory/v1/users?domain=' + extractDomainFromEmail(serviceAccountKey.client_email) + '&maxResults=500', {
@@ -330,5 +350,15 @@ function extractAdminEmailFromDomain(serviceAccountEmail: string): string {
   // For service accounts, we need to impersonate an admin user
   // This should be configured to use a real admin email from your domain
   const domain = extractDomainFromEmail(serviceAccountEmail);
-  return `admin@${domain}`; // You may need to adjust this based on your admin setup
+  
+  // Common admin email patterns - try these in order
+  const commonAdminEmails = [
+    `admin@${domain}`,
+    `administrator@${domain}`,
+    `it@${domain}`,
+    `support@${domain}`
+  ];
+  
+  // Return the first one - in practice, you should configure GOOGLE_ADMIN_EMAIL environment variable
+  return commonAdminEmails[0];
 }
