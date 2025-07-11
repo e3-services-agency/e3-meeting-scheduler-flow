@@ -43,9 +43,34 @@ async function createJWT(serviceAccountKey: any, userEmail?: string) {
 
   // Import the private key
   const privateKeyPem = serviceAccountKey.private_key;
+  
+  // Clean and format the private key properly
+  let cleanedKey = privateKeyPem.replace(/\\n/g, '\n');
+  
+  // Ensure proper PEM format
+  if (!cleanedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+    throw new Error('Invalid private key format: missing BEGIN marker');
+  }
+  if (!cleanedKey.includes('-----END PRIVATE KEY-----')) {
+    throw new Error('Invalid private key format: missing END marker');
+  }
+
+  // Extract the base64 content between the markers
+  const pemContent = cleanedKey
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s+/g, '');
+
+  // Convert base64 to binary
+  const binaryKey = atob(pemContent);
+  const keyBytes = new Uint8Array(binaryKey.length);
+  for (let i = 0; i < binaryKey.length; i++) {
+    keyBytes[i] = binaryKey.charCodeAt(i);
+  }
+
   const privateKey = await crypto.subtle.importKey(
     'pkcs8',
-    new TextEncoder().encode(privateKeyPem.replace(/\\n/g, '\n')),
+    keyBytes,
     {
       name: 'RSASSA-PKCS1-v1_5',
       hash: 'SHA-256',
