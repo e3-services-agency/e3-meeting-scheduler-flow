@@ -135,16 +135,32 @@ serve(async (req) => {
   }
 
   try {
-    const requestBody = await req.text();
-    console.log('Received request:', req.method, requestBody);
-    const { action, userEmail, eventData, email } = JSON.parse(requestBody);
+    const { action, userEmail, eventData, email } = await req.json();
+    console.log('Processing action:', action);
     const serviceAccountKeyStr = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
     
     if (!serviceAccountKeyStr) {
-      throw new Error('Google Service Account key not configured');
+      console.error('Google Service Account key not configured');
+      return new Response(JSON.stringify({ 
+        error: 'Google Service Account key not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+    let serviceAccountKey;
+    try {
+      serviceAccountKey = JSON.parse(serviceAccountKeyStr);
+    } catch (parseError) {
+      console.error('Invalid service account key format:', parseError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid service account key format' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     console.log('Service account email:', serviceAccountKey.client_email);
 
     switch (action) {
@@ -182,7 +198,13 @@ serve(async (req) => {
         const adminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
         
         if (!adminEmail) {
-          throw new Error('GOOGLE_ADMIN_EMAIL environment variable is required for domain-wide delegation');
+          console.error('GOOGLE_ADMIN_EMAIL environment variable is required');
+          return new Response(JSON.stringify({ 
+            error: 'GOOGLE_ADMIN_EMAIL environment variable is required for domain-wide delegation' 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
         
         console.log('Using admin email for impersonation:', adminEmail);
