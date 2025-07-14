@@ -1,20 +1,24 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, eachMinuteOfInterval, isWithinInterval } from 'date-fns';
 import { useTeamData } from '../../hooks/useTeamData';
-import { findCommonAvailableSlots, getAvailableDatesForMembers } from '../../utils/availabilityUtils';
+import { supabase } from '../../integrations/supabase/client';
 import { StepProps, TimeSlot } from '../../types/scheduling';
 
 interface AvailabilityStepProps extends StepProps {}
 
+interface BusySlot {
+  start: string;
+  end: string;
+}
+
 const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, onBack, onStateChange }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingDates, setLoadingDates] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [monthlyBusySchedule, setMonthlyBusySchedule] = useState<BusySlot[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const { teamMembers } = useTeamData();
@@ -42,68 +46,110 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
-  // Load available dates when selected members change
+  // Load busy schedule for entire month when currentMonth or selectedMemberEmails change
   useEffect(() => {
-    const loadAvailableDates = async () => {
+    const loadMonthlyAvailability = async () => {
       if (selectedMemberEmails.length === 0) {
-        setAvailableDates([]);
+        setMonthlyBusySchedule([]);
         return;
       }
 
-      setLoadingDates(true);
+      setLoading(true);
       setError(null);
       
       try {
-        console.log('Loading available dates for members:', selectedMemberEmails);
-        const dates = await getAvailableDatesForMembers(selectedMemberEmails, appState.duration || 60);
-        console.log('Available dates loaded:', dates);
-        setAvailableDates(dates);
+        // Calculate time range for entire visible calendar grid
+        const start = startOfWeek(startOfMonth(currentMonth));
+        const end = endOfWeek(endOfMonth(currentMonth));
+        
+        const timeMin = start.toISOString();
+        const timeMax = end.toISOString();
+
+        console.log('Loading monthly availability for period:', timeMin, 'to', timeMax, 'members:', selectedMemberEmails);
+        
+        // Call google-auth edge function to get busy schedule for all members
+        const { data, error } = await supabase.functions.invoke('google-auth', {
+          body: {
+            action: 'check_availability',
+            userEmails: selectedMemberEmails,
+            eventData: { timeMin, timeMax }
+          }
+        });
+
+        if (error) throw error;
+
+        // Combine all busy slots from all members
+        const allBusySlots: BusySlot[] = [];
+        if (data?.busyTimes) {
+          Object.values(data.busyTimes).forEach((memberBusy: any) => {
+            if (Array.isArray(memberBusy)) {
+              allBusySlots.push(...memberBusy);
+            }
+          });
+        }
+
+        console.log('Monthly busy schedule loaded:', allBusySlots);
+        setMonthlyBusySchedule(allBusySlots);
       } catch (error) {
-        console.error('Error loading available dates:', error);
-        setError('Failed to load available dates');
-        setAvailableDates([]);
+        console.error('Error loading monthly availability:', error);
+        setError('Failed to load availability');
+        setMonthlyBusySchedule([]);
       } finally {
-        setLoadingDates(false);
+        setLoading(false);
       }
     };
 
-    loadAvailableDates();
-  }, [selectedMemberEmails, appState.duration]);
+    loadMonthlyAvailability();
+  }, [currentMonth, selectedMemberEmails]);
 
-  // Load availability for selected date
-  const loadAvailability = async (date: Date) => {
-    if (selectedMemberEmails.length === 0) {
+  // Calculate available slots for selected date
+  useEffect(() => {
+    if (!selectedDate || monthlyBusySchedule.length === 0) {
       setAvailableSlots([]);
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Loading availability for date:', date, 'members:', selectedMemberEmails);
-      const slots = await findCommonAvailableSlots(
-        selectedMemberEmails,
-        date,
-        appState.duration || 60
-      );
+    const calculateAvailableSlots = () => {
+      const duration = appState.duration || 60;
+      const slots: TimeSlot[] = [];
       
-      console.log('Available slots loaded:', slots);
+      // Define working hours (9 AM to 5 PM)
+      const startHour = 9;
+      const endHour = 17;
+      
+      // Generate all possible slots for the selected date
+      const dateStart = new Date(selectedDate);
+      dateStart.setHours(startHour, 0, 0, 0);
+      
+      const dateEnd = new Date(selectedDate);
+      dateEnd.setHours(endHour, 0, 0, 0);
+      
+      // Generate slots every 30 minutes
+      const slotInterval = 30;
+      for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
+        const slotEnd = new Date(time.getTime() + duration * 60000);
+        
+        // Check if this slot conflicts with any busy time
+        const hasConflict = monthlyBusySchedule.some(busySlot => {
+          const busyStart = new Date(busySlot.start);
+          const busyEnd = new Date(busySlot.end);
+          
+          return (time < busyEnd && slotEnd > busyStart);
+        });
+        
+        if (!hasConflict && slotEnd <= dateEnd) {
+          slots.push({
+            start: time.toISOString(),
+            end: slotEnd.toISOString()
+          });
+        }
+      }
+      
       setAvailableSlots(slots);
-    } catch (error) {
-      console.error('Error loading availability:', error);
-      setError('Failed to load availability');
-      setAvailableSlots([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    if (selectedDate) {
-      loadAvailability(selectedDate);
-    }
-  }, [selectedDate, selectedMemberEmails, appState.duration]);
+    calculateAvailableSlots();
+  }, [selectedDate, monthlyBusySchedule, appState.duration]);
 
   const handleDateSelect = (date: Date) => {
     console.log('Date selected:', date);
@@ -131,8 +177,34 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   };
 
   const isDateAvailable = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return availableDates.includes(dateStr);
+    // Check if this date has any available slots by calculating them
+    const duration = appState.duration || 60;
+    const startHour = 9;
+    const endHour = 17;
+    
+    const dateStart = new Date(date);
+    dateStart.setHours(startHour, 0, 0, 0);
+    
+    const dateEnd = new Date(date);
+    dateEnd.setHours(endHour, 0, 0, 0);
+    
+    // Check if any 30-minute slot is available
+    const slotInterval = 30;
+    for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
+      const slotEnd = new Date(time.getTime() + duration * 60000);
+      
+      const hasConflict = monthlyBusySchedule.some(busySlot => {
+        const busyStart = new Date(busySlot.start);
+        const busyEnd = new Date(busySlot.end);
+        return (time < busyEnd && slotEnd > busyStart);
+      });
+      
+      if (!hasConflict && slotEnd <= dateEnd) {
+        return true; // Found at least one available slot
+      }
+    }
+    
+    return false; // No available slots found
   };
 
   const isTimeSelected = (slot: TimeSlot) => {
@@ -216,10 +288,10 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             </div>
           </div>
 
-          {loadingDates && (
+          {loading && (
             <div className="text-center py-4">
               <div className="w-6 h-6 border-2 border-e3-azure/30 border-t-e3-azure rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-e3-white/60 text-sm">Loading available dates...</p>
+              <p className="text-e3-white/60 text-sm">Loading availability...</p>
             </div>
           )}
 
@@ -241,7 +313,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                 <button
                   key={index}
                   onClick={() => !isPast && isCurrentMonth && handleDateSelect(date)}
-                  disabled={isPast || !isCurrentMonth || (!hasAvailability && !loadingDates)}
+                  disabled={isPast || !isCurrentMonth || (!hasAvailability && !loading)}
                   className={`
                     aspect-square p-2 rounded-lg text-sm font-medium transition relative
                     ${!isCurrentMonth 
