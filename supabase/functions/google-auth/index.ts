@@ -135,7 +135,9 @@ serve(async (req) => {
   }
 
   try {
-    const { action, userEmail, eventData, email } = await req.json();
+    const requestBody = await req.text();
+    console.log('Received request:', req.method, requestBody);
+    const { action, userEmail, eventData, email } = JSON.parse(requestBody);
     const serviceAccountKeyStr = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
     
     if (!serviceAccountKeyStr) {
