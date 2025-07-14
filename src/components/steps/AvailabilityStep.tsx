@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns';
+import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { useTeamData } from '../../hooks/useTeamData';
 import { findCommonAvailableSlots, getAvailableDatesForMembers } from '../../utils/availabilityUtils';
 import { StepProps, TimeSlot } from '../../types/scheduling';
@@ -14,7 +14,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingDates, setLoadingDates] = useState(false);
-  const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date()));
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [error, setError] = useState<string | null>(null);
   
   const { teamMembers } = useTeamData();
@@ -24,14 +24,23 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     member.googleCalendarConnected || member.email
   );
 
-  // Get selected team members with calendar access
-  const selectedMembers = Array.from(appState.requiredMembers)
-    .map(memberId => connectedMembers.find(m => m.id === memberId))
-    .filter(Boolean);
+  // Get selected team members with calendar access - memoize to prevent infinite loops
+  const selectedMembers = useMemo(() => {
+    return Array.from(appState.requiredMembers)
+      .map(memberId => connectedMembers.find(m => m.id === memberId))
+      .filter(Boolean);
+  }, [appState.requiredMembers, connectedMembers]);
 
-  const selectedMemberEmails = selectedMembers.map(member => member?.email).filter(Boolean) as string[];
+  const selectedMemberEmails = useMemo(() => {
+    return selectedMembers.map(member => member?.email).filter(Boolean) as string[];
+  }, [selectedMembers]);
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeek, i));
+  // Generate calendar days for full month view
+  const calendarDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(currentMonth));
+    const end = endOfWeek(endOfMonth(currentMonth));
+    return eachDayOfInterval({ start, end });
+  }, [currentMonth]);
 
   // Load available dates when selected members change
   useEffect(() => {
@@ -110,8 +119,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     });
   };
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    setCurrentWeek(direction === 'next' ? addWeeks(currentWeek, 1) : subWeeks(currentWeek, 1));
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentMonth(direction === 'next' ? 
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1) : 
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    );
   };
 
   const isDateSelected = (date: Date) => {
@@ -186,17 +198,17 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         <div className="bg-e3-space-blue/50 rounded-lg p-6 border border-e3-white/10">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-e3-white">
-              {format(currentWeek, 'MMMM yyyy')}
+              {format(currentMonth, 'MMMM yyyy')}
             </h3>
             <div className="flex gap-2">
               <button
-                onClick={() => navigateWeek('prev')}
+                onClick={() => navigateMonth('prev')}
                 className="p-2 hover:bg-e3-white/10 rounded-lg transition"
               >
                 <ChevronLeft className="w-4 h-4 text-e3-white" />
               </button>
               <button
-                onClick={() => navigateWeek('next')}
+                onClick={() => navigateMonth('next')}
                 className="p-2 hover:bg-e3-white/10 rounded-lg transition"
               >
                 <ChevronRight className="w-4 h-4 text-e3-white" />
@@ -218,33 +230,36 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
               </div>
             ))}
             
-            {weekDays.map((date, index) => {
+            {calendarDays.map((date, index) => {
               const isToday = isSameDay(date, new Date());
               const isSelected = isDateSelected(date);
               const isPast = date < new Date() && !isToday;
               const hasAvailability = isDateAvailable(date);
+              const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
               
               return (
                 <button
                   key={index}
-                  onClick={() => !isPast && handleDateSelect(date)}
-                  disabled={isPast || (!hasAvailability && !loadingDates)}
+                  onClick={() => !isPast && isCurrentMonth && handleDateSelect(date)}
+                  disabled={isPast || !isCurrentMonth || (!hasAvailability && !loadingDates)}
                   className={`
                     aspect-square p-2 rounded-lg text-sm font-medium transition relative
-                    ${isSelected 
-                      ? 'bg-e3-azure text-e3-white' 
-                      : isToday
-                        ? 'bg-e3-emerald/20 text-e3-emerald hover:bg-e3-emerald/30'
-                        : isPast
-                          ? 'text-e3-white/30 cursor-not-allowed'
-                          : hasAvailability
-                            ? 'text-e3-white hover:bg-e3-white/10 ring-1 ring-e3-emerald/50'
-                            : 'text-e3-white/50 cursor-not-allowed'
+                    ${!isCurrentMonth 
+                      ? 'text-e3-white/20 cursor-not-allowed'
+                      : isSelected 
+                        ? 'bg-e3-azure text-e3-white' 
+                        : isToday
+                          ? 'bg-e3-emerald/20 text-e3-emerald hover:bg-e3-emerald/30'
+                          : isPast
+                            ? 'text-e3-white/30 cursor-not-allowed'
+                            : hasAvailability
+                              ? 'text-e3-white hover:bg-e3-white/10 ring-1 ring-e3-emerald/50'
+                              : 'text-e3-white/50 cursor-not-allowed'
                     }
                   `}
                 >
                   {format(date, 'd')}
-                  {hasAvailability && !isSelected && (
+                  {hasAvailability && !isSelected && isCurrentMonth && (
                     <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-e3-emerald rounded-full" />
                   )}
                 </button>
