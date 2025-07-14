@@ -176,48 +176,46 @@ serve(async (req) => {
       }
 
       case 'list_workspace_users': {
-        // First, try to get the admin email from the stored credentials
-        const { data: credData } = await supabase
-          .from('admin_google_credentials')
-          .select('admin_email')
-          .single();
+        // Use the configured admin email from environment variables
+        const adminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
         
-        let adminEmail;
-        if (credData?.admin_email && !credData.admin_email.includes('gserviceaccount')) {
-          // Use stored admin email if it's not a service account email
-          adminEmail = credData.admin_email;
-        } else {
-          // Fallback to extracting from service account or use environment variable
-          const configuredAdminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
-          if (configuredAdminEmail) {
-            adminEmail = configuredAdminEmail;
-          } else {
-            adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
-          }
+        if (!adminEmail) {
+          throw new Error('GOOGLE_ADMIN_EMAIL environment variable is required for domain-wide delegation');
         }
         
         console.log('Using admin email for impersonation:', adminEmail);
-        const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
+        console.log('Service account email:', serviceAccountKey.client_email);
         
-        const response = await fetch('https://admin.googleapis.com/admin/directory/v1/users?domain=' + extractDomainFromEmail(serviceAccountKey.client_email) + '&maxResults=500', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        try {
+          const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
+          
+          const domain = extractDomainFromEmail(adminEmail);
+          console.log('Fetching users for domain:', domain);
+          
+          const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users?domain=${domain}&maxResults=500`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Directory API error: ${error}`);
+          if (!response.ok) {
+            const error = await response.text();
+            console.error('Directory API error:', error);
+            throw new Error(`Directory API error: ${error}`);
+          }
+
+          const data = await response.json();
+          return new Response(JSON.stringify({ 
+            success: true, 
+            users: data.users || [] 
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } catch (error) {
+          console.error('Error in list_workspace_users:', error);
+          throw error;
         }
-
-        const data = await response.json();
-        return new Response(JSON.stringify({ 
-          success: true, 
-          users: data.users || [] 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
       }
 
       case 'validate_email': {
