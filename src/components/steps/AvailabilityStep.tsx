@@ -248,14 +248,26 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   const handleDateSelect = (date: Date) => {
     console.log('Date selected:', date);
     setSelectedDate(date);
-    onStateChange({ selectedDate: date.toISOString() });
+    // CRITICAL FIX: Store date as simple YYYY-MM-DD string to avoid timezone shifts
+    const dateString = format(date, 'yyyy-MM-dd');
+    console.log('Storing date as string:', dateString);
+    onStateChange({ selectedDate: dateString });
   };
 
   const handleTimeSelect = (slot: TimeSlot) => {
     console.log('Time slot selected:', slot);
+    console.log('Selected date object:', selectedDate);
+    
+    // CRITICAL FIX: Store the complete datetime properly
+    const selectedDateTime = new Date(slot.start);
+    const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    console.log('Selected datetime (UTC):', selectedDateTime.toISOString());
+    console.log('Selected datetime (user TZ):', selectedDateTime.toLocaleString("en-US", {timeZone: userTimezone}));
+    
     onStateChange({ 
-      selectedTime: slot.start,
-      selectedDate: selectedDate?.toISOString()
+      selectedTime: slot.start, // This is already in ISO format from the slot
+      selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
     });
   };
 

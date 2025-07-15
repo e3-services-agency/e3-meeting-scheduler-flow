@@ -190,11 +190,20 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   const selectedTime = new Date(appState.selectedTime);
   const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   
+  console.log('=== CONFIRMATION STEP DEBUG ===');
+  console.log('Selected time from state:', appState.selectedTime);
+  console.log('Selected date from state:', appState.selectedDate);
+  console.log('User timezone:', userTimezone);
+  console.log('Parsed selected time:', selectedTime.toISOString());
+  console.log('Selected time in user TZ:', selectedTime.toLocaleString("en-US", {timeZone: userTimezone}));
+  
   const timeString = selectedTime.toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit',
     timeZone: userTimezone
   });
+  
+  // CRITICAL FIX: Use the selected time itself for date, don't rely on selectedDate string
   const dateString = selectedTime.toLocaleDateString([], { 
     weekday: 'long', 
     year: 'numeric', 
@@ -202,6 +211,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     day: 'numeric',
     timeZone: userTimezone
   });
+  
+  console.log('Formatted date string:', dateString);
+  console.log('Formatted time string:', timeString);
   
   // Get selected team members
   const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
