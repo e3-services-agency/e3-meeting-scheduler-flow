@@ -299,7 +299,18 @@ serve(async (req) => {
           throw new Error('User email and event data required');
         }
 
+        console.log('Creating event for user:', userEmail);
+        console.log('Event data received:', JSON.stringify(eventData, null, 2));
+        console.log('Attendees in event data:', eventData.attendees);
+
         const accessToken = await getAccessToken(serviceAccountKey, userEmail);
+        
+        const eventPayload = {
+          ...eventData,
+          sendNotifications: true
+        };
+
+        console.log('Final event payload being sent to Google Calendar:', JSON.stringify(eventPayload, null, 2));
         
         const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${userEmail}/events?sendUpdates=all`, {
           method: 'POST',
@@ -307,18 +318,18 @@ serve(async (req) => {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            ...eventData,
-            sendNotifications: true
-          }),
+          body: JSON.stringify(eventPayload),
         });
 
         if (!response.ok) {
           const error = await response.text();
+          console.error('Calendar API error response:', error);
           throw new Error(`Calendar API error: ${error}`);
         }
 
         const event = await response.json();
+        console.log('Google Calendar event created:', JSON.stringify(event, null, 2));
+        
         return new Response(JSON.stringify({ success: true, event }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

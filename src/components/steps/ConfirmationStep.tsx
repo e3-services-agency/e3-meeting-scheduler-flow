@@ -72,6 +72,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         attendees: attendeeEmails.map(email => ({ email }))
       };
 
+      console.log('Event data being sent to calendar:', eventData);
+      console.log('All attendee emails:', attendeeEmails);
+
       // Create calendar event using the first required member's calendar
       const organizerEmail = requiredMembers[0]?.email || 'admin@e3-services.com';
       
