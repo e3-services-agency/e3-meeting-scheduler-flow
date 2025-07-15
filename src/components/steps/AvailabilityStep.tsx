@@ -443,7 +443,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                     ${!isCurrentMonth 
                       ? 'text-e3-white/20 cursor-not-allowed'
                       : isSelected 
-                        ? 'bg-e3-azure text-e3-white' 
+                        ? 'bg-e3-emerald text-e3-space-blue' 
                         : isToday
                           ? 'bg-e3-emerald/20 text-e3-emerald hover:bg-e3-emerald/30'
                           : isPast
@@ -469,8 +469,8 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           {/* Duration Selection */}
           <div className="mb-6">
             <h3 className="text-e3-white font-medium mb-3 text-sm">Duration</h3>
-            <div className="flex gap-2">
-              {[30, 45, 60, 90].map((duration) => (
+            <div className="flex gap-2 flex-wrap">
+              {[15, 30, 45, 60, 90, 120].map((duration) => (
                 <button
                   key={duration}
                   onClick={() => onStateChange({ duration })}
@@ -480,7 +480,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                       : 'bg-e3-space-blue/30 text-e3-white/80 hover:bg-e3-emerald/20 hover:text-e3-white border border-e3-white/20'
                   }`}
                 >
-                  {duration === 60 ? '1 hour' : `${duration} min`}
+                  {duration === 60 ? '1 hour' : duration === 120 ? '2 hours' : `${duration} min`}
                 </button>
               ))}
             </div>
@@ -516,67 +516,75 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
               </button>
             </div>
           </div>
-
+          
           {!selectedDate ? (
-            <div className="text-center py-12 text-e3-white/60">
-              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Select a date to see available times</p>
+            <div className="min-h-[200px] flex items-center justify-center">
+              <div className="text-center text-e3-white/60">
+                <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>Select a date to see available times</p>
+              </div>
             </div>
           ) : loading ? (
-            <div className="text-center py-12">
-              <div className="w-8 h-8 border-2 border-e3-azure/30 border-t-e3-azure rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-e3-white/60">Loading availability...</p>
+            <div className="min-h-[200px] flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-2 border-e3-azure/30 border-t-e3-azure rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-e3-white/60">Loading availability...</p>
+              </div>
             </div>
           ) : availableSlots.length === 0 ? (
-            <div className="text-center py-12 text-e3-white/60">
-              <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="mb-4">No available times for required team members</p>
-              <div className="bg-e3-flame/10 border border-e3-flame/20 rounded-lg p-3 mb-4">
-                <p className="text-e3-flame text-sm mb-2">Try adjusting your selection:</p>
-                <ul className="text-xs text-e3-white/70 space-y-1">
-                  <li>• Choose fewer required team members</li>
-                  <li>• Select a different duration</li>
-                  <li>• Pick another date</li>
-                </ul>
+            <div className="min-h-[200px] flex items-center justify-center">
+              <div className="text-center text-e3-white/60">
+                <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="mb-4">No available times for required team members</p>
+                <div className="bg-e3-flame/10 border border-e3-flame/20 rounded-lg p-3 mb-4">
+                  <p className="text-e3-flame text-sm mb-2">Try adjusting your selection:</p>
+                  <ul className="text-xs text-e3-white/70 space-y-1">
+                    <li>• Choose fewer required team members</li>
+                    <li>• Select a different duration</li>
+                    <li>• Pick another date</li>
+                  </ul>
+                </div>
+                <button className="px-4 py-2 bg-e3-azure/20 border border-e3-azure text-e3-azure rounded-lg text-sm hover:bg-e3-azure/30 transition">
+                  Request Custom Time
+                </button>
               </div>
-              <button className="px-4 py-2 bg-e3-azure/20 border border-e3-azure text-e3-azure rounded-lg text-sm hover:bg-e3-azure/30 transition">
-                Request Custom Time
-              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
-              {availableSlots.map((slot, index) => {
-                const startTime = parseISO(slot.start);
-                const isSelected = isTimeSelected(slot);
-                
-                 return (
-                   <button
-                     key={index}
-                     onClick={() => handleTimeSelect(slot)}
-                     className={`
-                       relative p-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between
-                       ${isSelected 
-                         ? 'bg-e3-emerald text-e3-space-blue shadow-lg transform-none' 
-                         : 'bg-e3-space-blue/80 border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50 transform-none'
-                       }
-                     `}
-                   >
-                     <span>{formatTimeSlot(startTime)}</span>
-                     <div className="flex items-center gap-1">
-                       {/* Green square for required members available */}
-                       <div className="w-2 h-2 bg-emerald-500 rounded-sm" title="Required members available" />
-                       {/* Blue circle for optional members (always shown as they're invited regardless) */}
-                       {selectedMembers.optional.length > 0 && (
-                         <div className="w-2 h-2 bg-blue-500 rounded-full" title="Optional members invited" />
-                       )}
-                     </div>
-                   </button>
-                 );
-              })}
+            <div className="min-h-[200px]">
+              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
+                {availableSlots.map((slot, index) => {
+                  const startTime = parseISO(slot.start);
+                  const isSelected = isTimeSelected(slot);
+                  
+                   return (
+                     <button
+                       key={index}
+                       onClick={() => handleTimeSelect(slot)}
+                       className={`
+                         relative p-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between
+                         ${isSelected 
+                           ? 'bg-e3-emerald text-e3-space-blue shadow-lg transform-none' 
+                           : 'bg-e3-space-blue/80 border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50 transform-none'
+                         }
+                       `}
+                     >
+                       <span>{formatTimeSlot(startTime)}</span>
+                       <div className="flex items-center gap-1">
+                         {/* Green square for required members available */}
+                         <div className="w-2 h-2 bg-emerald-500 rounded-sm" title="Required members available" />
+                         {/* Blue circle for optional members (always shown as they're invited regardless) */}
+                         {selectedMembers.optional.length > 0 && (
+                           <div className="w-2 h-2 bg-blue-500 rounded-full" title="Optional members invited" />
+                         )}
+                       </div>
+                     </button>
+                   );
+                })}
+              </div>
             </div>
            )}
            
-           {/* Timezone Selector */}
+           {/* Timezone Selector - Always at bottom */}
            <div className="pt-4 border-t border-e3-white/10 mt-4">
              <TimezoneSelector
                value={appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}

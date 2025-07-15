@@ -20,7 +20,7 @@ const ClientBooking: React.FC = () => {
   const initialState: AppState = {
     currentStep: 1,
     totalSteps: 5,
-    duration: 60, // Default to 60 minutes
+    duration: 30, // Default to 30 minutes
     requiredMembers: new Set<string>(),
     optionalMembers: new Set<string>(),
     selectedDate: null,
