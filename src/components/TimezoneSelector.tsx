@@ -48,7 +48,7 @@ const TIMEZONES = [
   { value: 'Asia/Hong_Kong', label: 'Hong Kong', region: 'Asia' },
   { value: 'Asia/Singapore', label: 'Singapore', region: 'Asia' },
   { value: 'Asia/Seoul', label: 'Seoul', region: 'Asia' },
-  { value: 'Asia/Mumbai', label: 'Mumbai', region: 'Asia' },
+  { value: 'Asia/Kolkata', label: 'Mumbai', region: 'Asia' },
   { value: 'Asia/Dubai', label: 'Dubai', region: 'Asia' },
   { value: 'Asia/Bangkok', label: 'Bangkok', region: 'Asia' },
   { value: 'Asia/Manila', label: 'Manila', region: 'Asia' },

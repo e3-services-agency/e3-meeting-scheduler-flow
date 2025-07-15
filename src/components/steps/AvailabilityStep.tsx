@@ -121,44 +121,53 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const calculateAvailableSlots = () => {
       const duration = appState.duration || 60;
       const slots: TimeSlot[] = [];
+      const userTimezone = appState.timezone || 'UTC';
       
-      // Define working hours (9 AM to 6 PM)
+      // Define working hours in the user's timezone (9 AM to 6 PM)
       const startHour = 9;
       const endHour = 18;
       
-      // Generate all possible slots for the selected date
-      const dateStart = new Date(selectedDate);
-      dateStart.setHours(startHour, 0, 0, 0);
+      // Create date in user's timezone
+      const selectedDateInUserTz = new Date(selectedDate.toLocaleString("en-US", {timeZone: userTimezone}));
+      selectedDateInUserTz.setHours(startHour, 0, 0, 0);
       
-      const dateEnd = new Date(selectedDate);
-      dateEnd.setHours(endHour, 0, 0, 0);
+      const endDateInUserTz = new Date(selectedDate.toLocaleString("en-US", {timeZone: userTimezone}));
+      endDateInUserTz.setHours(endHour, 0, 0, 0);
       
       // Generate slots based on the selected duration
       const slotInterval = duration;
-      for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
-        const slotEnd = new Date(time.getTime() + duration * 60000);
+      let currentTime = new Date(selectedDateInUserTz);
+      
+      while (currentTime < endDateInUserTz) {
+        const slotEnd = new Date(currentTime.getTime() + duration * 60000);
         
-        // Check if this slot conflicts with any busy time
+        // Convert times to UTC for consistency with busy schedule
+        const slotStartUTC = new Date(currentTime.toLocaleString("en-US", {timeZone: "UTC"}));
+        const slotEndUTC = new Date(slotEnd.toLocaleString("en-US", {timeZone: "UTC"}));
+        
+        // Check if this slot conflicts with any busy time (busy times are in UTC)
         const hasConflict = monthlyBusySchedule.some(busySlot => {
           const busyStart = new Date(busySlot.start);
           const busyEnd = new Date(busySlot.end);
           
-          return (time < busyEnd && slotEnd > busyStart);
+          return (slotStartUTC < busyEnd && slotEndUTC > busyStart);
         });
         
-        if (!hasConflict && slotEnd <= dateEnd) {
+        if (!hasConflict && slotEnd <= endDateInUserTz) {
           slots.push({
-            start: time.toISOString(),
+            start: currentTime.toISOString(),
             end: slotEnd.toISOString()
           });
         }
+        
+        currentTime = new Date(currentTime.getTime() + slotInterval * 60000);
       }
       
       setAvailableSlots(slots);
     };
 
     calculateAvailableSlots();
-  }, [selectedDate, monthlyBusySchedule, appState.duration]);
+  }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone]);
 
   const availableDateSet = useMemo(() => {
     if (selectedMemberEmails.length === 0) return new Set<string>();
@@ -225,10 +234,13 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   };
 
   const formatTimeSlot = (time: Date) => {
+    const userTimezone = appState.timezone || 'UTC';
+    const timeInUserTz = new Date(time.toLocaleString("en-US", {timeZone: userTimezone}));
+    
     if (appState.timeFormat === '24h') {
-      return format(time, 'HH:mm');
+      return timeInUserTz.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
-    return format(time, 'h:mm a');
+    return timeInUserTz.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   // Check if we have any team members with calendar access
@@ -291,15 +303,28 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor="timeFormat" className="text-sm text-e3-white/80 whitespace-nowrap">Time Format:</label>
-          <select
-            id="timeFormat"
-            value={appState.timeFormat}
-            onChange={(e) => onStateChange({ timeFormat: e.target.value as '12h' | '24h' })}
-            className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white focus:border-e3-azure outline-none hover:bg-e3-space-blue/70 transition-colors"
-          >
-            <option value="12h">12 Hour</option>
-            <option value="24h">24 Hour</option>
-          </select>
+          <div className="flex items-center gap-2 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-1">
+            <button
+              onClick={() => onStateChange({ timeFormat: '12h' })}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                appState.timeFormat === '12h' 
+                  ? 'bg-e3-azure text-e3-white' 
+                  : 'text-e3-white/70 hover:text-e3-white'
+              }`}
+            >
+              am/pm
+            </button>
+            <button
+              onClick={() => onStateChange({ timeFormat: '24h' })}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                appState.timeFormat === '24h' 
+                  ? 'bg-e3-azure text-e3-white' 
+                  : 'text-e3-white/70 hover:text-e3-white'
+              }`}
+            >
+              24h
+            </button>
+          </div>
         </div>
       </div>
 
