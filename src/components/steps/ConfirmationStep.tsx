@@ -17,6 +17,11 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       return;
     }
 
+    console.log('=== BOOKING DEBUG INFO ===');
+    console.log('Full appState:', appState);
+    console.log('Guest emails from appState:', appState.guestEmails);
+    console.log('Guest emails length:', appState.guestEmails?.length || 0);
+
     setIsBooking(true);
     
     try {
@@ -29,11 +34,19 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       const optionalMembers = teamMembers.filter(m => appState.optionalMembers.has(m.id));
       const allMembers = [...requiredMembers, ...optionalMembers];
 
-      // Prepare attendee emails
+      console.log('Required members:', requiredMembers.map(m => m.email));
+      console.log('Optional members:', optionalMembers.map(m => m.email));
+      console.log('Guest emails (before adding to attendees):', appState.guestEmails);
+
+      // Prepare attendee emails - ensuring guestEmails is an array
+      const guestEmailsArray = Array.isArray(appState.guestEmails) ? appState.guestEmails : [];
       const attendeeEmails = [
         ...allMembers.map(m => m.email),
-        ...appState.guestEmails
+        ...guestEmailsArray
       ];
+
+      console.log('Final attendee emails array:', attendeeEmails);
+      console.log('Total attendees count:', attendeeEmails.length);
 
       // Save meeting to database
       const { data: meeting, error: dbError } = await (supabase as any)
