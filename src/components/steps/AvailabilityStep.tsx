@@ -102,7 +102,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
 
     loadMonthlyAvailability();
-  }, [currentMonth, selectedMemberEmails]);
+  }, [currentMonth, selectedMemberEmails.join(',')]);
 
   // Calculate available slots for selected date
   useEffect(() => {
