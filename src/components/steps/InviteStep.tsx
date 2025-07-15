@@ -1,22 +1,27 @@
 
-import React, { useRef, KeyboardEvent } from 'react';
+import React, { useRef, KeyboardEvent, useState, useEffect } from 'react';
 import { StepProps } from '../../types/scheduling';
 
 const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange }) => {
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const [localGuestEmails, setLocalGuestEmails] = useState<string[]>(appState.guestEmails || []);
+
+  // Sync local state with app state when step loads
+  useEffect(() => {
+    setLocalGuestEmails(appState.guestEmails || []);
+  }, [appState.guestEmails]);
 
   const handleEmailInput = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const email = emailInputRef.current?.value.trim();
       if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        if (!appState.guestEmails.includes(email)) {
-          console.log('Adding guest email:', email);
-          console.log('Current guest emails before adding:', appState.guestEmails);
-          const newGuestEmails = [...appState.guestEmails, email];
-          console.log('New guest emails after adding:', newGuestEmails);
+        if (!localGuestEmails.includes(email)) {
+          const newEmails = [...localGuestEmails, email];
+          setLocalGuestEmails(newEmails);
+          // Immediately update the app state
           onStateChange({
-            guestEmails: newGuestEmails
+            guestEmails: newEmails
           });
         }
         if (emailInputRef.current) {
@@ -27,8 +32,10 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
   };
 
   const removeEmail = (emailToRemove: string) => {
+    const newEmails = localGuestEmails.filter(email => email !== emailToRemove);
+    setLocalGuestEmails(newEmails);
     onStateChange({
-      guestEmails: appState.guestEmails.filter(email => email !== emailToRemove)
+      guestEmails: newEmails
     });
   };
 
@@ -38,7 +45,7 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
       <p className="text-e3-white/70 mb-6">Add email addresses for anyone else you'd like to invite.</p>
       
       <div className="flex flex-wrap gap-2 mb-4">
-        {appState.guestEmails.map(email => (
+        {localGuestEmails.map(email => (
           <div key={email} className="email-chip">
             <span>{email}</span>
             <button 

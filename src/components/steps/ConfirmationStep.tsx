@@ -194,12 +194,12 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
             </ul>
           </div>
         )}
-        {appState.guestEmails.length > 0 && (
+        {appState.guestEmails && appState.guestEmails.length > 0 && (
           <div>
-            <strong className="text-e3-emerald">Your Guests:</strong>
+            <strong className="text-e3-emerald">Guest Invitees:</strong>
             <div className="flex flex-wrap gap-2 mt-2">
               {appState.guestEmails.map(email => (
-                <span key={email} className="text-sm bg-e3-azure/50 px-2 py-1 rounded-full">
+                <span key={email} className="text-sm bg-e3-emerald/20 px-2 py-1 rounded-full text-e3-emerald">
                   {email}
                 </span>
               ))}
