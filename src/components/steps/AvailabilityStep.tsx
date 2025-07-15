@@ -49,8 +49,12 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   // Load busy schedule for entire month when currentMonth or selectedMemberEmails change
   useEffect(() => {
     const loadMonthlyAvailability = async () => {
+      console.log('loadMonthlyAvailability triggered, selectedMemberEmails:', selectedMemberEmails);
+      
       if (selectedMemberEmails.length === 0) {
+        console.log('No selected member emails, clearing schedule');
         setMonthlyBusySchedule([]);
+        setLoading(false);
         return;
       }
 
@@ -75,6 +79,8 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             eventData: { timeMin, timeMax }
           }
         });
+
+        console.log('API response:', data, 'error:', error);
 
         if (error) throw error;
 
@@ -102,7 +108,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
 
     loadMonthlyAvailability();
-  }, [currentMonth, selectedMemberEmails.join(',')]);
+  }, [currentMonth, selectedMemberEmails.length > 0 ? selectedMemberEmails.join(',') : 'empty']);
 
   // Calculate available slots for selected date
   useEffect(() => {
