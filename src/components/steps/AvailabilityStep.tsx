@@ -6,15 +6,18 @@ import { useTeamData } from '../../hooks/useTeamData';
 import { supabase } from '../../integrations/supabase/client';
 import { StepProps, TimeSlot } from '../../types/scheduling';
 import { TimezoneSelector } from '../TimezoneSelector';
+import { useBusinessHours } from '../../hooks/useBusinessHours';
 
-interface AvailabilityStepProps extends StepProps {}
+interface AvailabilityStepProps extends StepProps {
+  clientTeamFilter?: string;
+}
 
 interface BusySlot {
   start: string;
   end: string;
 }
 
-const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, onBack, onStateChange }) => {
+const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, onBack, onStateChange, clientTeamFilter }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -24,6 +27,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   const [showOnlyAllAvailable, setShowOnlyAllAvailable] = useState(false);
   
   const { teamMembers } = useTeamData();
+  const { businessHours, getWorkingHoursForDate, isWorkingDay } = useBusinessHours(clientTeamFilter);
 
   // Filter team members who have calendar connections
   const connectedMembers = teamMembers.filter(member => 
@@ -148,18 +152,31 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       console.log('Required members:', selectedMemberEmails.required);
       console.log('Optional member emails:', selectedMembers.optional.map(m => m.email));
       console.log('Member busy schedules:', monthlyBusySchedule);
+      console.log('Business hours:', businessHours);
       
-      // Define working hours (9 AM to 6 PM) in the selected timezone
-      const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const startHour = 9;
-      const endHour = 18;
+      // Get working hours for the selected date
+      const workingHours = getWorkingHoursForDate(selectedDate);
+      console.log('Working hours for selected date:', workingHours);
+      
+      if (!workingHours.start || !workingHours.end) {
+        console.log('Selected date is not a working day');
+        setAvailableSlots([]);
+        return;
+      }
+      
+      // Parse working hours
+      const [startHour, startMinute] = workingHours.start.split(':').map(Number);
+      const [endHour, endMinute] = workingHours.end.split(':').map(Number);
+      
+      // Define working hours using business hours configuration
+      const userTimezone = appState.timezone || businessHours?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       // Create working hours for the selected date in the user's timezone
       const workingStart = new Date(selectedDate);
-      workingStart.setHours(startHour, 0, 0, 0);
+      workingStart.setHours(startHour, startMinute, 0, 0);
       
       const workingEnd = new Date(selectedDate);
-      workingEnd.setHours(endHour, 0, 0, 0);
+      workingEnd.setHours(endHour, endMinute, 0, 0);
       
       console.log('Working hours start (', userTimezone, '):', workingStart.toLocaleString('en-US', { timeZone: userTimezone }));
       console.log('Working hours end (', userTimezone, '):', workingEnd.toLocaleString('en-US', { timeZone: userTimezone }));
@@ -273,19 +290,31 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone, selectedMemberEmails.required, selectedMembers.required, selectedMembers.optional]);
 
   const availableDateSet = useMemo(() => {
-    if (selectedMemberEmails.required.length === 0) return new Set<string>();
+    if (selectedMemberEmails.required.length === 0 || !businessHours) return new Set<string>();
 
     const availableDates = new Set<string>();
     const duration = appState.duration || 60;
-    const startHour = 9;
-    const endHour = 18;
-    const slotInterval = duration;
 
     calendarDays.forEach(date => {
+      // Check if this is a working day based on business hours
+      if (!isWorkingDay(date)) {
+        return; // Skip non-working days
+      }
+
+      const workingHours = getWorkingHoursForDate(date);
+      if (!workingHours.start || !workingHours.end) {
+        return; // Skip if no working hours defined
+      }
+
+      const [startHour, startMinute] = workingHours.start.split(':').map(Number);
+      const [endHour, endMinute] = workingHours.end.split(':').map(Number);
+
       const dateStart = new Date(date);
-      dateStart.setHours(startHour, 0, 0, 0);
+      dateStart.setHours(startHour, startMinute, 0, 0);
       const dateEnd = new Date(date);
-      dateEnd.setHours(endHour, 0, 0, 0);
+      dateEnd.setHours(endHour, endMinute, 0, 0);
+
+      const slotInterval = duration;
 
       for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
         const slotEnd = new Date(time.getTime() + duration * 60000);
@@ -314,7 +343,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       }
     });
     return availableDates;
-  }, [monthlyBusySchedule, calendarDays, appState.duration, appState.timezone, selectedMemberEmails.required]);
+  }, [monthlyBusySchedule, calendarDays, appState.duration, appState.timezone, selectedMemberEmails.required, businessHours, isWorkingDay, getWorkingHoursForDate]);
 
   const isDateAvailable = (date: Date) => {
     return availableDateSet.has(format(date, 'yyyy-MM-dd'));

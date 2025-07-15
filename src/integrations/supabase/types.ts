@@ -50,6 +50,152 @@ export type Database = {
         }
         Relationships: []
       }
+      business_hours: {
+        Row: {
+          created_at: string
+          friday_end: string | null
+          friday_start: string | null
+          id: string
+          is_active: boolean
+          monday_end: string | null
+          monday_start: string | null
+          name: string
+          saturday_end: string | null
+          saturday_start: string | null
+          sunday_end: string | null
+          sunday_start: string | null
+          thursday_end: string | null
+          thursday_start: string | null
+          timezone: string
+          tuesday_end: string | null
+          tuesday_start: string | null
+          updated_at: string
+          wednesday_end: string | null
+          wednesday_start: string | null
+        }
+        Insert: {
+          created_at?: string
+          friday_end?: string | null
+          friday_start?: string | null
+          id?: string
+          is_active?: boolean
+          monday_end?: string | null
+          monday_start?: string | null
+          name?: string
+          saturday_end?: string | null
+          saturday_start?: string | null
+          sunday_end?: string | null
+          sunday_start?: string | null
+          thursday_end?: string | null
+          thursday_start?: string | null
+          timezone?: string
+          tuesday_end?: string | null
+          tuesday_start?: string | null
+          updated_at?: string
+          wednesday_end?: string | null
+          wednesday_start?: string | null
+        }
+        Update: {
+          created_at?: string
+          friday_end?: string | null
+          friday_start?: string | null
+          id?: string
+          is_active?: boolean
+          monday_end?: string | null
+          monday_start?: string | null
+          name?: string
+          saturday_end?: string | null
+          saturday_start?: string | null
+          sunday_end?: string | null
+          sunday_start?: string | null
+          thursday_end?: string | null
+          thursday_start?: string | null
+          timezone?: string
+          tuesday_end?: string | null
+          tuesday_start?: string | null
+          updated_at?: string
+          wednesday_end?: string | null
+          wednesday_start?: string | null
+        }
+        Relationships: []
+      }
+      client_team_business_hours: {
+        Row: {
+          client_team_id: string
+          created_at: string
+          friday_end: string | null
+          friday_start: string | null
+          id: string
+          is_active: boolean
+          monday_end: string | null
+          monday_start: string | null
+          saturday_end: string | null
+          saturday_start: string | null
+          sunday_end: string | null
+          sunday_start: string | null
+          thursday_end: string | null
+          thursday_start: string | null
+          timezone: string
+          tuesday_end: string | null
+          tuesday_start: string | null
+          updated_at: string
+          wednesday_end: string | null
+          wednesday_start: string | null
+        }
+        Insert: {
+          client_team_id: string
+          created_at?: string
+          friday_end?: string | null
+          friday_start?: string | null
+          id?: string
+          is_active?: boolean
+          monday_end?: string | null
+          monday_start?: string | null
+          saturday_end?: string | null
+          saturday_start?: string | null
+          sunday_end?: string | null
+          sunday_start?: string | null
+          thursday_end?: string | null
+          thursday_start?: string | null
+          timezone: string
+          tuesday_end?: string | null
+          tuesday_start?: string | null
+          updated_at?: string
+          wednesday_end?: string | null
+          wednesday_start?: string | null
+        }
+        Update: {
+          client_team_id?: string
+          created_at?: string
+          friday_end?: string | null
+          friday_start?: string | null
+          id?: string
+          is_active?: boolean
+          monday_end?: string | null
+          monday_start?: string | null
+          saturday_end?: string | null
+          saturday_start?: string | null
+          sunday_end?: string | null
+          sunday_start?: string | null
+          thursday_end?: string | null
+          thursday_start?: string | null
+          timezone?: string
+          tuesday_end?: string | null
+          tuesday_start?: string | null
+          updated_at?: string
+          wednesday_end?: string | null
+          wednesday_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_team_business_hours_client_team_id_fkey"
+            columns: ["client_team_id"]
+            isOneToOne: true
+            referencedRelation: "client_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_teams: {
         Row: {
           created_at: string
