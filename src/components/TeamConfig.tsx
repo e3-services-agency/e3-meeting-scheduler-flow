@@ -312,12 +312,16 @@ const TeamConfig: React.FC = () => {
                               src={member.google_photo_url} 
                               alt={member.name}
                               className="w-10 h-10 rounded-full border-2 border-e3-azure/30"
+                              onError={(e) => {
+                                // Fallback to initials if image fails to load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                              }}
                             />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold">
-                              {member.name.charAt(0)}
-                            </div>
-                          )}
+                          ) : null}
+                          <div className={`w-10 h-10 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold ${member.google_photo_url ? 'hidden' : ''}`}>
+                            {member.name.charAt(0)}
+                          </div>
                           
                           {editingMember === member.id ? (
                             <input

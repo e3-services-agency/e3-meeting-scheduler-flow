@@ -98,26 +98,45 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
           
           return (
             <div key={member.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
-              <div className="flex-1">
-                <p className="font-bold">{member.name}</p>
-                <p className="text-sm text-e3-white/70">{member.role}</p>
-                {member.clientTeams.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {member.clientTeams.slice(0, 3).map(team => (
-                      <span
-                        key={team.id}
-                        className="px-2 py-0.5 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
-                      >
-                        {team.name}
-                      </span>
-                    ))}
-                    {member.clientTeams.length > 3 && (
-                      <span className="px-2 py-0.5 text-e3-white/40 text-xs">
-                        +{member.clientTeams.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                )}
+              <div className="flex items-center gap-3 flex-1">
+                {/* Profile Photo */}
+                {member.google_photo_url ? (
+                  <img 
+                    src={member.google_photo_url} 
+                    alt={member.name}
+                    className="w-12 h-12 rounded-full border-2 border-e3-azure/30"
+                    onError={(e) => {
+                      // Fallback to initials if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-12 h-12 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold ${member.google_photo_url ? 'hidden' : ''}`}>
+                  {member.name.charAt(0)}
+                </div>
+                
+                <div className="flex-1">
+                  <p className="font-bold">{member.name}</p>
+                  <p className="text-sm text-e3-white/70">{member.role}</p>
+                  {member.clientTeams.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {member.clientTeams.slice(0, 3).map(team => (
+                        <span
+                          key={team.id}
+                          className="px-2 py-0.5 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
+                        >
+                          {team.name}
+                        </span>
+                      ))}
+                      {member.clientTeams.length > 3 && (
+                        <span className="px-2 py-0.5 text-e3-white/40 text-xs">
+                          +{member.clientTeams.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-4 mt-3 sm:mt-0">
                 <label className="flex items-center cursor-pointer">
