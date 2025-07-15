@@ -159,7 +159,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const availableDates = new Set<string>();
     const duration = appState.duration || 60;
     const startHour = 9;
-    const endHour = 17;
+    const endHour = 18;
     const slotInterval = 30;
 
     calendarDays.forEach(date => {
@@ -211,37 +211,6 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
   const isDateSelected = (date: Date) => {
     return selectedDate && isSameDay(date, selectedDate);
-  };
-
-  const isDateAvailable = (date: Date) => {
-    // Check if this date has any available slots by calculating them
-    const duration = appState.duration || 60;
-    const startHour = 9;
-    const endHour = 17;
-    
-    const dateStart = new Date(date);
-    dateStart.setHours(startHour, 0, 0, 0);
-    
-    const dateEnd = new Date(date);
-    dateEnd.setHours(endHour, 0, 0, 0);
-    
-    // Check if any 30-minute slot is available
-    const slotInterval = 30;
-    for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
-      const slotEnd = new Date(time.getTime() + duration * 60000);
-      
-      const hasConflict = monthlyBusySchedule.some(busySlot => {
-        const busyStart = new Date(busySlot.start);
-        const busyEnd = new Date(busySlot.end);
-        return (time < busyEnd && slotEnd > busyStart);
-      });
-      
-      if (!hasConflict && slotEnd <= dateEnd) {
-        return true; // Found at least one available slot
-      }
-    }
-    
-    return false; // No available slots found
   };
 
   const isTimeSelected = (slot: TimeSlot) => {
