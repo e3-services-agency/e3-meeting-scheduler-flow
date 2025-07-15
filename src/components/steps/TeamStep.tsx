@@ -99,19 +99,21 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
           return (
             <div key={member.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
               <div className="flex items-center gap-3 flex-1">
-                {/* Profile Photo - only show if Google photo exists */}
+                {/* Profile Photo - handle Google photos properly */}
                 {member.google_photo_url ? (
                   <img 
                     src={member.google_photo_url} 
                     alt={member.name}
                     className="w-12 h-12 rounded-full border-2 border-e3-azure/30 object-cover"
                     onError={(e) => {
-                      console.error('Failed to load Google photo for', member.name, ':', member.google_photo_url);
+                      console.error('Google photo failed to load for', member.name, ':', member.google_photo_url);
                       // Hide image and show initials fallback
                       e.currentTarget.style.display = 'none';
                       const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                       if (fallback) fallback.classList.remove('hidden');
                     }}
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                   />
                 ) : null}
                 <div className={`w-12 h-12 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold border-2 border-e3-azure/30 ${member.google_photo_url ? 'hidden' : ''}`}>

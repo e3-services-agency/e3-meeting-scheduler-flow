@@ -306,19 +306,21 @@ const TeamConfig: React.FC = () => {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          {/* Profile Photo - only show if Google photo exists */}
+                          {/* Profile Photo - handle Google photos properly */}
                           {member.google_photo_url ? (
                             <img 
                               src={member.google_photo_url} 
                               alt={member.name}
                               className="w-10 h-10 rounded-full border-2 border-e3-azure/30 object-cover"
                               onError={(e) => {
-                                console.error('Failed to load Google photo for', member.name, ':', member.google_photo_url);
+                                console.error('Google photo failed to load for', member.name, ':', member.google_photo_url);
                                 // Hide image and show initials fallback
                                 e.currentTarget.style.display = 'none';
                                 const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                                 if (fallback) fallback.classList.remove('hidden');
                               }}
+                              referrerPolicy="no-referrer"
+                              crossOrigin="anonymous"
                             />
                           ) : null}
                           <div className={`w-10 h-10 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold border-2 border-e3-azure/30 ${member.google_photo_url ? 'hidden' : ''}`}>
