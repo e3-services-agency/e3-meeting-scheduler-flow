@@ -144,23 +144,25 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       
       console.log('=== CORRECTED SLOT GENERATION ===');
       console.log('Selected date:', selectedDate);
+      console.log('Selected timezone:', appState.timezone);
       console.log('Required members:', selectedMemberEmails.required);
       console.log('Optional member emails:', selectedMembers.optional.map(m => m.email));
       console.log('Member busy schedules:', monthlyBusySchedule);
       
-      // Define working hours (9 AM to 6 PM)
+      // Define working hours (9 AM to 6 PM) in the selected timezone
+      const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
       const startHour = 9;
       const endHour = 18;
       
-      // Create working hours for the selected date in local time
+      // Create working hours for the selected date in the user's timezone
       const workingStart = new Date(selectedDate);
       workingStart.setHours(startHour, 0, 0, 0);
       
       const workingEnd = new Date(selectedDate);
       workingEnd.setHours(endHour, 0, 0, 0);
       
-      console.log('Working hours start:', workingStart.toISOString());
-      console.log('Working hours end:', workingEnd.toISOString());
+      console.log('Working hours start (', userTimezone, '):', workingStart.toLocaleString('en-US', { timeZone: userTimezone }));
+      console.log('Working hours end (', userTimezone, '):', workingEnd.toLocaleString('en-US', { timeZone: userTimezone }));
       
       // Generate time slots
       let currentTime = new Date(workingStart);
@@ -168,7 +170,12 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       while (currentTime < workingEnd) {
         const slotEnd = new Date(currentTime.getTime() + duration * 60000);
         
-        console.log('\n--- Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
+        console.log('\n--- Checking slot:', 
+          currentTime.toLocaleString('en-US', { timeZone: userTimezone }), 
+          'to', 
+          slotEnd.toLocaleString('en-US', { timeZone: userTimezone }),
+          '(', userTimezone, ')'
+        );
         
         // Check availability for each required member individually
         const requiredMembersAvailable: string[] = [];
@@ -263,7 +270,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
 
     calculateAvailableSlots();
-  }, [selectedDate, monthlyBusySchedule, appState.duration, selectedMemberEmails.required, selectedMembers.required, selectedMembers.optional]);
+  }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone, selectedMemberEmails.required, selectedMembers.required, selectedMembers.optional]);
 
   const availableDateSet = useMemo(() => {
     if (selectedMemberEmails.required.length === 0) return new Set<string>();
@@ -307,7 +314,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       }
     });
     return availableDates;
-  }, [monthlyBusySchedule, calendarDays, appState.duration, selectedMemberEmails.required]);
+  }, [monthlyBusySchedule, calendarDays, appState.duration, appState.timezone, selectedMemberEmails.required]);
 
   const isDateAvailable = (date: Date) => {
     return availableDateSet.has(format(date, 'yyyy-MM-dd'));
@@ -355,11 +362,23 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   };
 
   const formatTimeSlot = (time: Date) => {
-    // Simple local time formatting - no timezone conversion needed
+    // Format time in the selected timezone
+    const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
     if (appState.timeFormat === '24h') {
-      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      return time.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: false,
+        timeZone: userTimezone 
+      });
     }
-    return time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+    return time.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true,
+      timeZone: userTimezone 
+    });
   };
 
   // Check if we have any team members with calendar access
@@ -635,7 +654,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             <div className="min-h-[200px]">
               <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
                 {availableSlots.map((slot, index) => {
-                  const startTime = parseISO(slot.start);
+                  const startTime = new Date(slot.start);
                   const isSelected = isTimeSelected(slot);
                   
                    return (
