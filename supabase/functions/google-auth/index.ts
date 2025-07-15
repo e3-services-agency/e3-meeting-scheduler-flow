@@ -301,13 +301,16 @@ serve(async (req) => {
 
         const accessToken = await getAccessToken(serviceAccountKey, userEmail);
         
-        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${userEmail}/events`, {
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${userEmail}/events?sendUpdates=all`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(eventData),
+          body: JSON.stringify({
+            ...eventData,
+            sendNotifications: true
+          }),
         });
 
         if (!response.ok) {
