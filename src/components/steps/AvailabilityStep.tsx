@@ -131,48 +131,61 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const calculateAvailableSlots = () => {
       const duration = appState.duration || 60;
       const slots: TimeSlot[] = [];
-      const userTimezone = appState.timezone || 'UTC';
+      const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      console.log('Calculating slots for date:', selectedDate, 'in timezone:', userTimezone);
+      console.log('Busy schedule:', monthlyBusySchedule);
       
       // Define working hours in the user's timezone (9 AM to 6 PM)
       const startHour = 9;
       const endHour = 18;
       
-      // Create date in user's timezone
-      const selectedDateInUserTz = new Date(selectedDate.toLocaleString("en-US", {timeZone: userTimezone}));
-      selectedDateInUserTz.setHours(startHour, 0, 0, 0);
+      // Create date objects in user's timezone
+      const selectedDateStr = selectedDate.toISOString().split('T')[0]; // Get YYYY-MM-DD
+      const startTimeInUserTz = new Date(`${selectedDateStr}T${startHour.toString().padStart(2, '0')}:00:00`);
+      const endTimeInUserTz = new Date(`${selectedDateStr}T${endHour.toString().padStart(2, '0')}:00:00`);
       
-      const endDateInUserTz = new Date(selectedDate.toLocaleString("en-US", {timeZone: userTimezone}));
-      endDateInUserTz.setHours(endHour, 0, 0, 0);
+      console.log('Working hours in user timezone:', startTimeInUserTz.toISOString(), 'to', endTimeInUserTz.toISOString());
       
       // Generate slots based on the selected duration
       const slotInterval = duration;
-      let currentTime = new Date(selectedDateInUserTz);
+      let currentTime = new Date(startTimeInUserTz);
       
-      while (currentTime < endDateInUserTz) {
+      while (currentTime < endTimeInUserTz) {
         const slotEnd = new Date(currentTime.getTime() + duration * 60000);
         
-        // Convert times to UTC for consistency with busy schedule
+        // Convert to UTC for comparison with busy schedule (which is in UTC)
         const slotStartUTC = new Date(currentTime.toLocaleString("en-US", {timeZone: "UTC"}));
         const slotEndUTC = new Date(slotEnd.toLocaleString("en-US", {timeZone: "UTC"}));
         
-        // Check if this slot conflicts with any busy time (busy times are in UTC)
+        console.log('Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
+        console.log('UTC equivalent:', slotStartUTC.toISOString(), 'to', slotEndUTC.toISOString());
+        
+        // Check if this slot conflicts with any busy time
         const hasConflict = monthlyBusySchedule.some(busySlot => {
           const busyStart = new Date(busySlot.start);
           const busyEnd = new Date(busySlot.end);
           
-          return (slotStartUTC < busyEnd && slotEndUTC > busyStart);
+          // Check for overlap: slot overlaps if it starts before busy ends and ends after busy starts
+          const overlaps = slotStartUTC < busyEnd && slotEndUTC > busyStart;
+          if (overlaps) {
+            console.log('Conflict found with:', busySlot.start, 'to', busySlot.end);
+          }
+          return overlaps;
         });
         
-        if (!hasConflict && slotEnd <= endDateInUserTz) {
+        if (!hasConflict && slotEnd <= endTimeInUserTz) {
           slots.push({
             start: currentTime.toISOString(),
             end: slotEnd.toISOString()
           });
+          console.log('Added available slot:', currentTime.toISOString());
         }
         
         currentTime = new Date(currentTime.getTime() + slotInterval * 60000);
       }
       
+      console.log('Final available slots:', slots);
       setAvailableSlots(slots);
     };
 
@@ -244,13 +257,15 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   };
 
   const formatTimeSlot = (time: Date) => {
-    const userTimezone = appState.timezone || 'UTC';
+    const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Create a new date in the user's timezone
     const timeInUserTz = new Date(time.toLocaleString("en-US", {timeZone: userTimezone}));
     
     if (appState.timeFormat === '24h') {
-      return timeInUserTz.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      return timeInUserTz.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTimezone });
     }
-    return timeInUserTz.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+    return timeInUserTz.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: userTimezone });
   };
 
   // Check if we have any team members with calendar access
@@ -310,7 +325,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         <div className="flex items-center gap-2">
           <label htmlFor="timezone" className="text-sm text-e3-white/80 whitespace-nowrap">Timezone:</label>
           <TimezoneSelector
-            value={appState.timezone}
+            value={appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
             onChange={(timezone) => onStateChange({ timezone })}
             className="min-w-[280px]"
           />
@@ -342,19 +357,55 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         </div>
       </div>
 
-      {/* Compact Availability Info */}
-      <div className="bg-e3-space-blue/30 rounded-lg p-3 border border-e3-azure/20 mb-6">
-        <div className="flex items-center gap-2 mb-2">
+      {/* Individual Member Chips with Colors */}
+      <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-azure/20 mb-6">
+        <div className="flex items-center gap-2 mb-3">
           <Info className="w-4 h-4 text-e3-azure" />
-          <span className="text-sm font-medium text-e3-azure">
-            Checking availability for: {selectedMembers.required.map(m => m.name).join(', ')}
-            {selectedMembers.optional.length > 0 && (
-              <span className="text-e3-white/60"> + {selectedMembers.optional.length} optional</span>
-            )}
-          </span>
+          <span className="text-sm font-medium text-e3-azure">Checking availability for:</span>
         </div>
-        <div className="text-xs text-e3-white/70">
-          <span className="text-emerald-400">● Required</span> availability checked • <span className="text-blue-400">● Optional</span> invited but not blocking
+        
+        <div className="space-y-3">
+          {selectedMembers.required.length > 0 && (
+            <div>
+              <div className="text-xs text-emerald-400 font-medium mb-2">Required Members (availability checked)</div>
+              <div className="flex flex-wrap gap-2">
+                {selectedMembers.required.map((member, index) => {
+                  const colors = [
+                    'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+                    'bg-green-500/20 text-green-400 border-green-500/40',
+                    'bg-teal-500/20 text-teal-400 border-teal-500/40',
+                    'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                  ];
+                  return (
+                    <div key={member?.id} className={`px-3 py-1 rounded-full text-xs font-medium border ${colors[index % colors.length]}`}>
+                      {member?.name}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          
+          {selectedMembers.optional.length > 0 && (
+            <div>
+              <div className="text-xs text-blue-400 font-medium mb-2">Optional Members (invited but not blocking)</div>
+              <div className="flex flex-wrap gap-2">
+                {selectedMembers.optional.map((member, index) => {
+                  const colors = [
+                    'bg-blue-500/20 text-blue-400 border-blue-500/40',
+                    'bg-indigo-500/20 text-indigo-400 border-indigo-500/40',
+                    'bg-purple-500/20 text-purple-400 border-purple-500/40',
+                    'bg-pink-500/20 text-pink-400 border-pink-500/40'
+                  ];
+                  return (
+                    <div key={member?.id} className={`px-3 py-1 rounded-full text-xs font-medium border ${colors[index % colors.length]}`}>
+                      {member?.name}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
