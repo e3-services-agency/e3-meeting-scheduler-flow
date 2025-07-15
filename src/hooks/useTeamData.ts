@@ -102,6 +102,8 @@ export const useTeamData = () => {
           clientTeams,
           googleCalendarConnected: !!member.google_calendar_id,
           googleCalendarId: member.google_calendar_id,
+          google_photo_url: member.google_photo_url, // Added this!
+          google_profile_data: member.google_profile_data, // Added this!
           isActive: member.is_active,
           createdAt: member.created_at,
           updatedAt: member.updated_at
