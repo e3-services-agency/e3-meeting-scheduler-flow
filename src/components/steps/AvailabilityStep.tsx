@@ -140,12 +140,21 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const startHour = 9;
       const endHour = 18;
       
-      // Create date objects in user's timezone
+      // CRITICAL FIX: Create date objects properly in user's timezone
       const selectedDateStr = selectedDate.toISOString().split('T')[0]; // Get YYYY-MM-DD
-      const startTimeInUserTz = new Date(`${selectedDateStr}T${startHour.toString().padStart(2, '0')}:00:00`);
-      const endTimeInUserTz = new Date(`${selectedDateStr}T${endHour.toString().padStart(2, '0')}:00:00`);
       
-      console.log('Working hours in user timezone:', startTimeInUserTz.toISOString(), 'to', endTimeInUserTz.toISOString());
+      // Create proper timezone-aware date construction using the user's timezone
+      // This ensures the date stays consistent across timezones
+      const year = parseInt(selectedDateStr.split('-')[0]);
+      const month = parseInt(selectedDateStr.split('-')[1]) - 1; // months are 0-indexed
+      const day = parseInt(selectedDateStr.split('-')[2]);
+      
+      const startTimeInUserTz = new Date(year, month, day, startHour, 0, 0, 0);
+      const endTimeInUserTz = new Date(year, month, day, endHour, 0, 0, 0);
+      
+      console.log('Selected date string:', selectedDateStr);
+      console.log('Date components:', { year, month: month + 1, day });
+      console.log('Working hours in local time:', startTimeInUserTz.toString(), 'to', endTimeInUserTz.toString());
       
       // Generate slots based on the selected duration
       const slotInterval = duration;

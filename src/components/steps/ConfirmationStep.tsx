@@ -37,10 +37,15 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     return `${getClientName()} x E3 Session`;
   });
   
+  const [sessionTopic, setSessionTopic] = useState(appState.bookingTopic || '');
   const [sessionDescription, setSessionDescription] = useState(appState.bookingDescription || '');
 
   const confirmBooking = async () => {
-    if (!appState.selectedTime || !appState.selectedDate) {
+    if (!appState.selectedTime || !appState.selectedDate || !sessionTopic.trim()) {
+      if (!sessionTopic.trim()) {
+        toast.error('Please add a topic for the meeting');
+        return;
+      }
       toast.error('Missing required booking information');
       return;
     }
@@ -80,7 +85,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
 
       // Use the current session title and description
       const meetingTitle = sessionTitle.trim() || `Meeting with ${requiredMembers.map(m => m.name).join(', ')}`;
-      const meetingDescription = sessionDescription.trim() || `Meeting scheduled via team scheduling system`;
+      const meetingDescription = `${sessionTopic.trim()}\n\n${sessionDescription.trim() || 'Meeting scheduled via team scheduling system'}`;
 
       // Save meeting to database
       const { data: meeting, error: dbError } = await (supabase as any)
@@ -158,6 +163,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       selectedTime: null,
       guestEmails: [],
       bookingTitle: undefined,
+      bookingTopic: undefined,
       bookingDescription: undefined,
       bookerName: undefined,
       bookerEmail: undefined
@@ -167,6 +173,11 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   const handleTitleChange = (value: string) => {
     setSessionTitle(value);
     onStateChange({ bookingTitle: value });
+  };
+  
+  const handleTopicChange = (value: string) => {
+    setSessionTopic(value);
+    onStateChange({ bookingTopic: value });
   };
 
   const handleDescriptionChange = (value: string) => {
@@ -211,6 +222,10 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         <div className="bg-e3-space-blue/30 rounded-lg p-6 mb-6 text-left border border-e3-emerald/20">
           <h3 className="text-lg font-semibold text-e3-emerald mb-4 text-center">Booking Summary</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Topic:</span>
+              <span className="text-e3-white sm:block">{sessionTopic}</span>
+            </div>
             <div className="flex justify-between sm:block">
               <span className="text-e3-azure font-medium">Title:</span>
               <span className="text-e3-white sm:block">{sessionTitle}</span>
@@ -276,6 +291,25 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
             className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-4 py-3 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none text-base sm:text-lg"
             placeholder="Enter session title..."
           />
+        </div>
+
+        {/* TOPIC Section - Required */}
+        <div className="bg-e3-space-blue/70 p-4 sm:p-6 rounded-lg border border-e3-white/10">
+          <label className="block text-sm font-medium text-e3-emerald mb-3">
+            Topic <span className="text-red-400">*</span>
+            <span className="text-e3-white/60 text-xs ml-2">What will you be discussing in this meeting?</span>
+          </label>
+          <input
+            type="text"
+            value={sessionTopic}
+            onChange={(e) => handleTopicChange(e.target.value)}
+            className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-4 py-3 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none text-base sm:text-lg"
+            placeholder="e.g., Project kickoff, Strategy review, Product demo..."
+            required
+          />
+          {!sessionTopic.trim() && (
+            <p className="text-red-400 text-xs mt-1">Topic is required to proceed</p>
+          )}
         </div>
 
         {/* Meeting Details - WHEN & WHO */}
@@ -401,7 +435,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
           </button>
           <button 
             onClick={confirmBooking}
-            disabled={isBooking}
+            disabled={isBooking || !sessionTopic.trim()}
             className="order-1 sm:order-2 cta disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}
@@ -412,7 +446,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-e3-space-blue/95 backdrop-blur-sm border-t border-e3-white/10 sm:hidden z-50">
           <button 
             onClick={confirmBooking}
-            disabled={isBooking}
+            disabled={isBooking || !sessionTopic.trim()}
             className="w-full cta disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}

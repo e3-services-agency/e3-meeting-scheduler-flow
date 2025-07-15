@@ -21,6 +21,7 @@ export interface AppState {
   steps: { name: string }[];
   // Booking customization
   bookingTitle?: string;
+  bookingTopic?: string;
   bookingDescription?: string;
   bookingImages?: string[];
   bookingLinks?: { name: string; url: string }[];
