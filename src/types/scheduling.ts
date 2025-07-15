@@ -49,4 +49,10 @@ export interface SchedulingData {
 export interface TimeSlot {
   start: string;
   end: string;
+  attendees?: {
+    name: string;
+    email: string;
+    type: 'required' | 'optional';
+    available: boolean;
+  }[];
 }

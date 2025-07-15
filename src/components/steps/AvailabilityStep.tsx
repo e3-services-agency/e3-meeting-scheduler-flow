@@ -121,7 +121,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     loadMonthlyAvailability();
   }, [currentMonth, selectedMemberEmails.required.length > 0 ? selectedMemberEmails.required.join(',') : 'empty']);
 
-  // Calculate available slots for selected date
+  // Calculate available slots for selected date with detailed attendee info
   useEffect(() => {
     if (!selectedDate || monthlyBusySchedule.length === 0) {
       setAvailableSlots([]);
@@ -132,8 +132,10 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const duration = appState.duration || 60;
       const slots: TimeSlot[] = [];
       
-      console.log('=== SIMPLIFIED SLOT GENERATION ===');
+      console.log('=== ENHANCED SLOT GENERATION ===');
       console.log('Selected date:', selectedDate);
+      console.log('Required members:', selectedMemberEmails.required);
+      console.log('All members:', selectedMemberEmails.all);
       console.log('Busy schedule count:', monthlyBusySchedule.length);
       
       // Define working hours (9 AM to 6 PM)
@@ -158,28 +160,66 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         
         console.log('Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
         
-        // Check for conflicts with busy times
-        const hasConflict = monthlyBusySchedule.some(busySlot => {
-          const busyStart = new Date(busySlot.start);
-          const busyEnd = new Date(busySlot.end);
-          
-          // Check for overlap
-          const overlaps = currentTime < busyEnd && slotEnd > busyStart;
-          
-          if (overlaps) {
-            console.log('❌ Conflict with busy time:', busySlot.start, 'to', busySlot.end);
-          }
-          
-          return overlaps;
-        });
+        // Check availability for each member type
+        const requiredAvailable: string[] = [];
+        const optionalAvailable: string[] = [];
         
-        // Only add if no conflict and slot fits within working hours
-        if (!hasConflict && slotEnd <= workingEnd) {
+        // Check required members
+        for (const email of selectedMemberEmails.required) {
+          const hasConflict = monthlyBusySchedule.some(busySlot => {
+            const busyStart = new Date(busySlot.start);
+            const busyEnd = new Date(busySlot.end);
+            const overlaps = currentTime < busyEnd && slotEnd > busyStart;
+            return overlaps;
+          });
+          
+          if (!hasConflict) {
+            requiredAvailable.push(email);
+          }
+        }
+        
+        // Check optional members
+        for (const email of selectedMembers.optional.map(m => m.email).filter(Boolean)) {
+          const hasConflict = monthlyBusySchedule.some(busySlot => {
+            const busyStart = new Date(busySlot.start);
+            const busyEnd = new Date(busySlot.end);
+            const overlaps = currentTime < busyEnd && slotEnd > busyStart;
+            return overlaps;
+          });
+          
+          if (!hasConflict) {
+            optionalAvailable.push(email);
+          }
+        }
+        
+        // Only add slot if ALL required members are available
+        const allRequiredAvailable = requiredAvailable.length === selectedMemberEmails.required.length;
+        
+        if (allRequiredAvailable && slotEnd <= workingEnd) {
+          // Create attendee info for display
+          const attendees = [
+            ...selectedMembers.required.map(member => ({
+              name: member.name,
+              email: member.email,
+              type: 'required' as const,
+              available: requiredAvailable.includes(member.email)
+            })),
+            ...selectedMembers.optional.map(member => ({
+              name: member.name,
+              email: member.email,
+              type: 'optional' as const,
+              available: optionalAvailable.includes(member.email)
+            }))
+          ];
+          
           slots.push({
             start: currentTime.toISOString(),
-            end: slotEnd.toISOString()
+            end: slotEnd.toISOString(),
+            attendees
           });
-          console.log('✅ Added slot:', currentTime.toISOString());
+          console.log('✅ Added slot:', currentTime.toISOString(), 'with attendees:', attendees);
+        } else {
+          console.log('❌ Slot rejected - not all required members available');
         }
         
         // Move to next slot
@@ -191,7 +231,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
 
     calculateAvailableSlots();
-  }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone]);
+  }, [selectedDate, monthlyBusySchedule, appState.duration, selectedMemberEmails.required, selectedMembers.required, selectedMembers.optional]);
 
   const availableDateSet = useMemo(() => {
     if (selectedMemberEmails.required.length === 0) return new Set<string>();
@@ -567,11 +607,12 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                      >
                        <span>{formatTimeSlot(startTime)}</span>
                        <div className="flex items-center gap-1">
-                         {/* Green square for required members available */}
-                         <div className="w-2 h-2 bg-emerald-500 rounded-sm" title="Required members available" />
-                         {/* Blue circle for optional members (always shown as they're invited regardless) */}
-                         {selectedMembers.optional.length > 0 && (
-                           <div className="w-2 h-2 bg-blue-500 rounded-full" title="Optional members invited" />
+                         {/* Show dots based on actual availability */}
+                         {slot.attendees?.some(a => a.type === 'required' && a.available) && (
+                           <div className="w-2 h-2 bg-emerald-500 rounded-sm" title="Required members available" />
+                         )}
+                         {slot.attendees?.some(a => a.type === 'optional' && a.available) && (
+                           <div className="w-2 h-2 bg-blue-500 rounded-full" title="Optional members available" />
                          )}
                        </div>
                      </button>
