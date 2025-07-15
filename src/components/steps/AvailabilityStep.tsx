@@ -18,7 +18,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [monthlyBusySchedule, setMonthlyBusySchedule] = useState<BusySlot[]>([]);
+  const [monthlyBusySchedule, setMonthlyBusySchedule] = useState<Record<string, BusySlot[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOnlyAllAvailable, setShowOnlyAllAvailable] = useState(false);
@@ -64,7 +64,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       
       if (selectedMemberEmails.required.length === 0) {
         console.log('No required member emails, clearing schedule');
-        setMonthlyBusySchedule([]);
+        setMonthlyBusySchedule({});
         setLoading(false);
         return;
       }
@@ -80,13 +80,15 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         const timeMin = start.toISOString();
         const timeMax = end.toISOString();
 
-        console.log('Loading monthly availability for period:', timeMin, 'to', timeMax, 'required members:', selectedMemberEmails.required);
+        console.log('Loading monthly availability for period:', timeMin, 'to', timeMax);
+        console.log('Required members:', selectedMemberEmails.required);
+        console.log('All members (required + optional):', selectedMemberEmails.all);
         
-        // Call google-auth edge function to get busy schedule for required members only
+        // Call google-auth edge function to get busy schedule for ALL members (required + optional)
         const { data, error } = await supabase.functions.invoke('google-auth', {
           body: {
             action: 'check_availability',
-            userEmails: selectedMemberEmails.required,
+            userEmails: selectedMemberEmails.all, // Get availability for all members
             eventData: { timeMin, timeMax }
           }
         });
@@ -95,35 +97,43 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
         if (error) throw error;
 
-        // The data is nested under `availability.calendars`
-        const allBusySlots: BusySlot[] = [];
+        // Process the data to maintain per-member busy schedules
+        const memberBusySchedules: Record<string, BusySlot[]> = {};
+        
         if (data?.availability?.calendars) {
-          // Loop through each calendar in the response (one for each team member)
-          Object.values(data.availability.calendars).forEach((calendar: any) => {
-            // The busy slots are in the `busy` array for each calendar
+          console.log('Processing calendar data:', data.availability.calendars);
+          
+          // The API returns calendars keyed by email
+          Object.entries(data.availability.calendars).forEach(([email, calendar]: [string, any]) => {
             if (Array.isArray(calendar.busy)) {
-              allBusySlots.push(...calendar.busy);
+              memberBusySchedules[email] = calendar.busy;
+              console.log(`Member ${email} has ${calendar.busy.length} busy slots`);
+            } else {
+              memberBusySchedules[email] = [];
+              console.log(`Member ${email} has no busy slots`);
             }
           });
         }
 
-        console.log('Monthly busy schedule loaded:', allBusySlots);
-        setMonthlyBusySchedule(allBusySlots);
+        console.log('Member busy schedules:', memberBusySchedules);
+        
+        // Store the per-member busy schedules
+        setMonthlyBusySchedule(memberBusySchedules);
       } catch (error) {
         console.error('Error loading monthly availability:', error);
         setError('Failed to load availability');
-        setMonthlyBusySchedule([]);
+        setMonthlyBusySchedule({});
       } finally {
         setLoading(false);
       }
     };
 
     loadMonthlyAvailability();
-  }, [currentMonth, selectedMemberEmails.required.length > 0 ? selectedMemberEmails.required.join(',') : 'empty']);
+  }, [currentMonth, selectedMemberEmails.all.length > 0 ? selectedMemberEmails.all.join(',') : 'empty']);
 
-  // Calculate available slots for selected date with detailed attendee info
+  // Calculate available slots for selected date with proper per-member availability checking
   useEffect(() => {
-    if (!selectedDate || monthlyBusySchedule.length === 0) {
+    if (!selectedDate || Object.keys(monthlyBusySchedule).length === 0) {
       setAvailableSlots([]);
       return;
     }
@@ -132,11 +142,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const duration = appState.duration || 60;
       const slots: TimeSlot[] = [];
       
-      console.log('=== ENHANCED SLOT GENERATION ===');
+      console.log('=== CORRECTED SLOT GENERATION ===');
       console.log('Selected date:', selectedDate);
       console.log('Required members:', selectedMemberEmails.required);
-      console.log('All members:', selectedMemberEmails.all);
-      console.log('Busy schedule count:', monthlyBusySchedule.length);
+      console.log('Optional member emails:', selectedMembers.optional.map(m => m.email));
+      console.log('Member busy schedules:', monthlyBusySchedule);
       
       // Define working hours (9 AM to 6 PM)
       const startHour = 9;
@@ -158,57 +168,77 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       while (currentTime < workingEnd) {
         const slotEnd = new Date(currentTime.getTime() + duration * 60000);
         
-        console.log('Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
+        console.log('\n--- Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
         
-        // Check availability for each member type
-        const requiredAvailable: string[] = [];
-        const optionalAvailable: string[] = [];
+        // Check availability for each required member individually
+        const requiredMembersAvailable: string[] = [];
+        let allRequiredAvailable = true;
         
-        // Check required members
         for (const email of selectedMemberEmails.required) {
-          const hasConflict = monthlyBusySchedule.some(busySlot => {
+          const memberBusySlots = monthlyBusySchedule[email] || [];
+          
+          const hasConflict = memberBusySlots.some(busySlot => {
             const busyStart = new Date(busySlot.start);
             const busyEnd = new Date(busySlot.end);
             const overlaps = currentTime < busyEnd && slotEnd > busyStart;
+            
+            if (overlaps) {
+              console.log(`  ❌ Required member ${email} has conflict: ${busySlot.start} to ${busySlot.end}`);
+            }
+            
             return overlaps;
           });
           
           if (!hasConflict) {
-            requiredAvailable.push(email);
+            requiredMembersAvailable.push(email);
+            console.log(`  ✅ Required member ${email} is available`);
+          } else {
+            allRequiredAvailable = false;
+            console.log(`  ❌ Required member ${email} is NOT available`);
           }
         }
         
-        // Check optional members
-        for (const email of selectedMembers.optional.map(m => m.email).filter(Boolean)) {
-          const hasConflict = monthlyBusySchedule.some(busySlot => {
-            const busyStart = new Date(busySlot.start);
-            const busyEnd = new Date(busySlot.end);
-            const overlaps = currentTime < busyEnd && slotEnd > busyStart;
-            return overlaps;
-          });
-          
-          if (!hasConflict) {
-            optionalAvailable.push(email);
-          }
-        }
-        
-        // Only add slot if ALL required members are available
-        const allRequiredAvailable = requiredAvailable.length === selectedMemberEmails.required.length;
-        
+        // Only create slot if ALL required members are available
         if (allRequiredAvailable && slotEnd <= workingEnd) {
+          // Check optional members availability
+          const optionalMembersAvailable: string[] = [];
+          
+          for (const member of selectedMembers.optional) {
+            const memberBusySlots = monthlyBusySchedule[member.email] || [];
+            
+            const hasConflict = memberBusySlots.some(busySlot => {
+              const busyStart = new Date(busySlot.start);
+              const busyEnd = new Date(busySlot.end);
+              const overlaps = currentTime < busyEnd && slotEnd > busyStart;
+              
+              if (overlaps) {
+                console.log(`  ❌ Optional member ${member.email} has conflict: ${busySlot.start} to ${busySlot.end}`);
+              }
+              
+              return overlaps;
+            });
+            
+            if (!hasConflict) {
+              optionalMembersAvailable.push(member.email);
+              console.log(`  ✅ Optional member ${member.email} is available`);
+            } else {
+              console.log(`  ❌ Optional member ${member.email} is NOT available`);
+            }
+          }
+          
           // Create attendee info for display
           const attendees = [
             ...selectedMembers.required.map(member => ({
               name: member.name,
               email: member.email,
               type: 'required' as const,
-              available: requiredAvailable.includes(member.email)
+              available: requiredMembersAvailable.includes(member.email)
             })),
             ...selectedMembers.optional.map(member => ({
               name: member.name,
               email: member.email,
               type: 'optional' as const,
-              available: optionalAvailable.includes(member.email)
+              available: optionalMembersAvailable.includes(member.email)
             }))
           ];
           
@@ -217,15 +247,17 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             end: slotEnd.toISOString(),
             attendees
           });
-          console.log('✅ Added slot:', currentTime.toISOString(), 'with attendees:', attendees);
+          
+          console.log(`  ✅ SLOT CREATED with ${requiredMembersAvailable.length}/${selectedMemberEmails.required.length} required and ${optionalMembersAvailable.length}/${selectedMembers.optional.length} optional available`);
         } else {
-          console.log('❌ Slot rejected - not all required members available');
+          console.log(`  ❌ SLOT REJECTED - Required members availability: ${requiredMembersAvailable.length}/${selectedMemberEmails.required.length}`);
         }
         
         // Move to next slot
         currentTime = new Date(currentTime.getTime() + duration * 60000);
       }
       
+      console.log('\n=== FINAL RESULT ===');
       console.log('Generated', slots.length, 'available slots');
       setAvailableSlots(slots);
     };
@@ -250,12 +282,25 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
       for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
         const slotEnd = new Date(time.getTime() + duration * 60000);
-        const hasConflict = monthlyBusySchedule.some(busySlot => {
-          const busyStart = new Date(busySlot.start);
-          const busyEnd = new Date(busySlot.end);
-          return time < busyEnd && slotEnd > busyStart;
-        });
-        if (!hasConflict && slotEnd <= dateEnd) {
+        
+        // Check if ALL required members are available for this slot
+        let allRequiredAvailable = true;
+        
+        for (const email of selectedMemberEmails.required) {
+          const memberBusySlots = monthlyBusySchedule[email] || [];
+          const hasConflict = memberBusySlots.some(busySlot => {
+            const busyStart = new Date(busySlot.start);
+            const busyEnd = new Date(busySlot.end);
+            return time < busyEnd && slotEnd > busyStart;
+          });
+          
+          if (hasConflict) {
+            allRequiredAvailable = false;
+            break;
+          }
+        }
+        
+        if (allRequiredAvailable && slotEnd <= dateEnd) {
           availableDates.add(format(date, 'yyyy-MM-dd'));
           break; 
         }
