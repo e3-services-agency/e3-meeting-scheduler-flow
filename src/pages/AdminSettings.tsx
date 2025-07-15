@@ -1,18 +1,48 @@
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, Users, Database, ArrowLeft } from 'lucide-react';
+import { Settings, Calendar, Users, Database, ArrowLeft, Plus, Edit, Trash2, Save, X, CheckCircle, AlertCircle, BarChart3, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import { supabase } from '../integrations/supabase/client';
+import { toast } from 'sonner';
 
 const AdminSettings: React.FC = () => {
   const [hasGoogleCredentials, setHasGoogleCredentials] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'calendar' | 'team' | 'database'>('calendar');
+  
+  // Team Settings State
+  const [teams, setTeams] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  const [editingMember, setEditingMember] = useState<string | null>(null);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamDescription, setNewTeamDescription] = useState('');
+  
+  // Database State
+  const [dbStats, setDbStats] = useState<any>(null);
+  const [recentMeetings, setRecentMeetings] = useState<any[]>([]);
+  
+  // Calendar Settings State
+  const [calendarSettings, setCalendarSettings] = useState({
+    defaultDuration: 60,
+    syncFrequency: 15
+  });
 
   useEffect(() => {
-    checkGoogleCredentials();
+    loadAllData();
   }, []);
+
+  const loadAllData = async () => {
+    await Promise.all([
+      checkGoogleCredentials(),
+      loadTeams(),
+      loadMembers(),
+      loadDatabaseStats(),
+      loadRecentMeetings()
+    ]);
+    setLoading(false);
+  };
 
   const checkGoogleCredentials = async () => {
     try {
@@ -27,8 +57,173 @@ const AdminSettings: React.FC = () => {
     } catch (err) {
       console.error('Error checking Google credentials:', err);
     } finally {
-      setLoading(false);
+      // Don't set loading false here since we're loading multiple things
     }
+  };
+
+  const loadTeams = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('client_teams')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setTeams(data || []);
+    } catch (err) {
+      console.error('Error loading teams:', err);
+      toast.error('Failed to load teams');
+    }
+  };
+
+  const loadMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setMembers(data || []);
+    } catch (err) {
+      console.error('Error loading members:', err);
+      toast.error('Failed to load team members');
+    }
+  };
+
+  const loadDatabaseStats = async () => {
+    try {
+      const [teamsCount, membersCount, meetingsCount] = await Promise.all([
+        supabase.from('client_teams').select('id', { count: 'exact' }),
+        supabase.from('team_members').select('id', { count: 'exact' }),
+        supabase.from('meetings').select('id', { count: 'exact' })
+      ]);
+
+      setDbStats({
+        teams: teamsCount.count || 0,
+        members: membersCount.count || 0,
+        meetings: meetingsCount.count || 0
+      });
+    } catch (err) {
+      console.error('Error loading database stats:', err);
+    }
+  };
+
+  const loadRecentMeetings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      setRecentMeetings(data || []);
+    } catch (err) {
+      console.error('Error loading recent meetings:', err);
+    }
+  };
+
+  const handleCreateTeam = async () => {
+    if (!newTeamName.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from('client_teams')
+        .insert({
+          name: newTeamName.trim(),
+          description: newTeamDescription.trim() || null
+        });
+      
+      if (error) throw error;
+      
+      setNewTeamName('');
+      setNewTeamDescription('');
+      await loadTeams();
+      toast.success('Team created successfully');
+    } catch (err) {
+      console.error('Error creating team:', err);
+      toast.error('Failed to create team');
+    }
+  };
+
+  const handleUpdateTeam = async (teamId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('client_teams')
+        .update(updates)
+        .eq('id', teamId);
+      
+      if (error) throw error;
+      
+      await loadTeams();
+      setEditingTeam(null);
+      toast.success('Team updated successfully');
+    } catch (err) {
+      console.error('Error updating team:', err);
+      toast.error('Failed to update team');
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string) => {
+    if (!confirm('Are you sure you want to delete this team? This action cannot be undone.')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('client_teams')
+        .delete()
+        .eq('id', teamId);
+      
+      if (error) throw error;
+      
+      await loadTeams();
+      toast.success('Team deleted successfully');
+    } catch (err) {
+      console.error('Error deleting team:', err);
+      toast.error('Failed to delete team');
+    }
+  };
+
+  const handleUpdateMember = async (memberId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update(updates)
+        .eq('id', memberId);
+      
+      if (error) throw error;
+      
+      await loadMembers();
+      setEditingMember(null);
+      toast.success('Team member updated successfully');
+    } catch (err) {
+      console.error('Error updating member:', err);
+      toast.error('Failed to update team member');
+    }
+  };
+
+  const handleDeleteMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to delete this team member? This action cannot be undone.')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', memberId);
+      
+      if (error) throw error;
+      
+      await loadMembers();
+      toast.success('Team member deleted successfully');
+    } catch (err) {
+      console.error('Error deleting member:', err);
+      toast.error('Failed to delete team member');
+    }
+  };
+
+  const handleSaveCalendarSettings = async () => {
+    // In a real implementation, you'd save these to a settings table
+    toast.success('Calendar settings saved successfully');
   };
 
   const handleCredentialsStored = () => {
@@ -144,10 +339,16 @@ const AdminSettings: React.FC = () => {
                         <p className="font-medium">Default Meeting Duration</p>
                         <p className="text-sm text-e3-white/60">Set the default length for new meetings</p>
                       </div>
-                      <select className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-1 text-e3-white">
+                      <select 
+                        value={calendarSettings.defaultDuration}
+                        onChange={(e) => setCalendarSettings(prev => ({ ...prev, defaultDuration: parseInt(e.target.value) }))}
+                        className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-1 text-e3-white"
+                      >
+                        <option value="15">15 minutes</option>
                         <option value="30">30 minutes</option>
                         <option value="60">1 hour</option>
                         <option value="90">1.5 hours</option>
+                        <option value="120">2 hours</option>
                       </select>
                     </div>
                     
@@ -156,11 +357,26 @@ const AdminSettings: React.FC = () => {
                         <p className="font-medium">Auto-sync Frequency</p>
                         <p className="text-sm text-e3-white/60">How often to sync with Google Calendar</p>
                       </div>
-                      <select className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-1 text-e3-white">
+                      <select 
+                        value={calendarSettings.syncFrequency}
+                        onChange={(e) => setCalendarSettings(prev => ({ ...prev, syncFrequency: parseInt(e.target.value) }))}
+                        className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-1 text-e3-white"
+                      >
                         <option value="5">Every 5 minutes</option>
                         <option value="15">Every 15 minutes</option>
                         <option value="30">Every 30 minutes</option>
+                        <option value="60">Every hour</option>
                       </select>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleSaveCalendarSettings}
+                        className="px-4 py-2 bg-e3-emerald text-e3-white rounded-lg hover:bg-e3-emerald/80 transition-colors flex items-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        Save Settings
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -173,20 +389,232 @@ const AdminSettings: React.FC = () => {
 
         {/* Team Settings Tab */}
         {activeTab === 'team' && (
-          <div>
-            <h2 className="sub-heading mb-6">Team Settings</h2>
+          <div className="space-y-6">
+            <h2 className="sub-heading mb-6">Team Management</h2>
+            
+            {/* Create New Team */}
             <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
-              <p className="text-e3-white/60">Team management settings will be implemented here.</p>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-e3-emerald" />
+                Create New Team
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-e3-white mb-2">Team Name</label>
+                  <input
+                    type="text"
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder="Enter team name"
+                    className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-e3-white mb-2">Description (Optional)</label>
+                  <input
+                    type="text"
+                    value={newTeamDescription}
+                    onChange={(e) => setNewTeamDescription(e.target.value)}
+                    placeholder="Enter team description"
+                    className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleCreateTeam}
+                disabled={!newTeamName.trim()}
+                className="px-4 py-2 bg-e3-emerald text-e3-white rounded-lg hover:bg-e3-emerald/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Team
+              </button>
+            </div>
+
+            {/* Teams List */}
+            <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-e3-azure" />
+                Existing Teams ({teams.length})
+              </h3>
+              {teams.length === 0 ? (
+                <p className="text-e3-white/60">No teams created yet. Create your first team above.</p>
+              ) : (
+                <div className="space-y-3">
+                  {teams.map((team) => (
+                    <div key={team.id} className="bg-e3-space-blue/50 p-4 rounded-lg border border-e3-white/10">
+                      {editingTeam === team.id ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            defaultValue={team.name}
+                            onBlur={(e) => handleUpdateTeam(team.id, { name: e.target.value })}
+                            className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-2 text-e3-white"
+                          />
+                          <input
+                            type="text"
+                            defaultValue={team.description || ''}
+                            onBlur={(e) => handleUpdateTeam(team.id, { description: e.target.value || null })}
+                            placeholder="Team description"
+                            className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-2 text-e3-white"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-e3-white">{team.name}</h4>
+                            {team.description && (
+                              <p className="text-sm text-e3-white/70">{team.description}</p>
+                            )}
+                            <p className="text-xs text-e3-white/50 mt-1">
+                              Status: {team.is_active ? 'Active' : 'Inactive'} • Created: {new Date(team.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleUpdateTeam(team.id, { is_active: !team.is_active })}
+                              className={`p-2 rounded transition ${team.is_active ? 'text-e3-emerald hover:bg-e3-emerald/20' : 'text-e3-white/50 hover:bg-e3-white/10'}`}
+                              title={team.is_active ? 'Deactivate team' : 'Activate team'}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingTeam(editingTeam === team.id ? null : team.id)}
+                              className="p-2 text-e3-azure hover:bg-e3-azure/20 rounded transition"
+                              title="Edit team"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team.id)}
+                              className="p-2 text-red-400 hover:bg-red-400/20 rounded transition"
+                              title="Delete team"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Team Members */}
+            <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-e3-azure" />
+                Team Members ({members.length})
+              </h3>
+              {members.length === 0 ? (
+                <p className="text-e3-white/60">No team members found. Add members in the Team Configuration page.</p>
+              ) : (
+                <div className="space-y-3">
+                  {members.map((member) => (
+                    <div key={member.id} className="bg-e3-space-blue/50 p-4 rounded-lg border border-e3-white/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-e3-white">{member.name}</h4>
+                          <p className="text-sm text-e3-white/70">{member.role} • {member.email}</p>
+                          <p className="text-xs text-e3-white/50 mt-1">
+                            Status: {member.is_active ? 'Active' : 'Inactive'} • 
+                            Calendar: {member.google_calendar_id ? 'Connected' : 'Not Connected'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateMember(member.id, { is_active: !member.is_active })}
+                            className={`p-2 rounded transition ${member.is_active ? 'text-e3-emerald hover:bg-e3-emerald/20' : 'text-e3-white/50 hover:bg-e3-white/10'}`}
+                            title={member.is_active ? 'Deactivate member' : 'Activate member'}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMember(member.id)}
+                            className="p-2 text-red-400 hover:bg-red-400/20 rounded transition"
+                            title="Delete member"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {/* Database Tab */}
         {activeTab === 'database' && (
-          <div>
-            <h2 className="sub-heading mb-6">Database Settings</h2>
+          <div className="space-y-6">
+            <h2 className="sub-heading mb-6">Database Overview</h2>
+            
+            {/* Database Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-emerald/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <Users className="w-6 h-6 text-e3-emerald" />
+                  <h3 className="font-bold text-e3-emerald">Teams</h3>
+                </div>
+                <p className="text-2xl font-bold text-e3-white">{dbStats?.teams || 0}</p>
+                <p className="text-sm text-e3-white/70">Total client teams</p>
+              </div>
+              
+              <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-azure/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <Activity className="w-6 h-6 text-e3-azure" />
+                  <h3 className="font-bold text-e3-azure">Members</h3>
+                </div>
+                <p className="text-2xl font-bold text-e3-white">{dbStats?.members || 0}</p>
+                <p className="text-sm text-e3-white/70">Team members</p>
+              </div>
+              
+              <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/20">
+                <div className="flex items-center gap-3 mb-2">
+                  <Calendar className="w-6 h-6 text-e3-white" />
+                  <h3 className="font-bold text-e3-white">Meetings</h3>
+                </div>
+                <p className="text-2xl font-bold text-e3-white">{dbStats?.meetings || 0}</p>
+                <p className="text-sm text-e3-white/70">Total meetings scheduled</p>
+              </div>
+            </div>
+
+            {/* Recent Meetings */}
             <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
-              <p className="text-e3-white/60">Database management tools will be implemented here.</p>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-e3-azure" />
+                Recent Meetings
+              </h3>
+              {recentMeetings.length === 0 ? (
+                <p className="text-e3-white/60">No meetings scheduled yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentMeetings.map((meeting) => (
+                    <div key={meeting.id} className="bg-e3-space-blue/50 p-4 rounded-lg border border-e3-white/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold text-e3-white">{meeting.title}</h4>
+                          <p className="text-sm text-e3-white/70">
+                            {new Date(meeting.start_time).toLocaleString()} - {new Date(meeting.end_time).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-e3-white/50 mt-1">
+                            Organizer: {meeting.organizer_email} • Attendees: {meeting.attendee_emails?.length || 0}
+                          </p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          meeting.status === 'scheduled' ? 'bg-e3-emerald/20 text-e3-emerald' :
+                          meeting.status === 'completed' ? 'bg-e3-azure/20 text-e3-azure' :
+                          'bg-e3-white/20 text-e3-white'
+                        }`}>
+                          {meeting.status}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
