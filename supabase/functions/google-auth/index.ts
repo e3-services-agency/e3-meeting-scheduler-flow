@@ -261,7 +261,23 @@ serve(async (req) => {
           throw new Error('Email is required');
         }
 
-        const adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+        console.log('Validating email:', email);
+        
+        // Use the configured admin email from environment variables
+        const adminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
+        
+        if (!adminEmail) {
+          console.error('GOOGLE_ADMIN_EMAIL environment variable is required');
+          return new Response(JSON.stringify({ 
+            error: 'GOOGLE_ADMIN_EMAIL environment variable is required for domain-wide delegation' 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        console.log('Using admin email for validation:', adminEmail);
+        
         const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
         
         const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${email}`, {
@@ -271,6 +287,8 @@ serve(async (req) => {
           },
         });
 
+        console.log('Validation response status:', response.status);
+        
         return new Response(JSON.stringify({ 
           success: true, 
           valid: response.ok 
@@ -284,10 +302,26 @@ serve(async (req) => {
           throw new Error('Email is required');
         }
 
-        const adminEmail = extractAdminEmailFromDomain(serviceAccountKey.client_email);
+        console.log('Getting user profile for:', email);
+        
+        // Use the configured admin email from environment variables
+        const adminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
+        
+        if (!adminEmail) {
+          console.error('GOOGLE_ADMIN_EMAIL environment variable is required');
+          return new Response(JSON.stringify({ 
+            error: 'GOOGLE_ADMIN_EMAIL environment variable is required for domain-wide delegation' 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        console.log('Using admin email for profile fetch:', adminEmail);
+        
         const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
         
-        const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${email}`, {
+        const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users/${email}?projection=full&viewType=admin_view`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
@@ -296,10 +330,13 @@ serve(async (req) => {
 
         if (!response.ok) {
           const error = await response.text();
+          console.error('Directory API error for user profile:', error);
           throw new Error(`Directory API error: ${error}`);
         }
 
         const userData = await response.json();
+        console.log('User profile data received:', JSON.stringify(userData, null, 2));
+        
         return new Response(JSON.stringify({ 
           success: true, 
           user: userData 
