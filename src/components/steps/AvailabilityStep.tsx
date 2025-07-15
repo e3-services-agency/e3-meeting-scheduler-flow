@@ -78,12 +78,14 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
         if (error) throw error;
 
-        // Combine all busy slots from all members
+        // The data is nested under `availability.calendars`
         const allBusySlots: BusySlot[] = [];
-        if (data?.busyTimes) {
-          Object.values(data.busyTimes).forEach((memberBusy: any) => {
-            if (Array.isArray(memberBusy)) {
-              allBusySlots.push(...memberBusy);
+        if (data?.availability?.calendars) {
+          // Loop through each calendar in the response (one for each team member)
+          Object.values(data.availability.calendars).forEach((calendar: any) => {
+            // The busy slots are in the `busy` array for each calendar
+            if (Array.isArray(calendar.busy)) {
+              allBusySlots.push(...calendar.busy);
             }
           });
         }
@@ -113,9 +115,9 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const duration = appState.duration || 60;
       const slots: TimeSlot[] = [];
       
-      // Define working hours (9 AM to 5 PM)
+      // Define working hours (9 AM to 6 PM)
       const startHour = 9;
-      const endHour = 17;
+      const endHour = 18;
       
       // Generate all possible slots for the selected date
       const dateStart = new Date(selectedDate);
@@ -150,6 +152,41 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
     calculateAvailableSlots();
   }, [selectedDate, monthlyBusySchedule, appState.duration]);
+
+  const availableDateSet = useMemo(() => {
+    if (selectedMemberEmails.length === 0) return new Set<string>();
+
+    const availableDates = new Set<string>();
+    const duration = appState.duration || 60;
+    const startHour = 9;
+    const endHour = 17;
+    const slotInterval = 30;
+
+    calendarDays.forEach(date => {
+      const dateStart = new Date(date);
+      dateStart.setHours(startHour, 0, 0, 0);
+      const dateEnd = new Date(date);
+      dateEnd.setHours(endHour, 0, 0, 0);
+
+      for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
+        const slotEnd = new Date(time.getTime() + duration * 60000);
+        const hasConflict = monthlyBusySchedule.some(busySlot => {
+          const busyStart = new Date(busySlot.start);
+          const busyEnd = new Date(busySlot.end);
+          return time < busyEnd && slotEnd > busyStart;
+        });
+        if (!hasConflict && slotEnd <= dateEnd) {
+          availableDates.add(format(date, 'yyyy-MM-dd'));
+          break; 
+        }
+      }
+    });
+    return availableDates;
+  }, [monthlyBusySchedule, calendarDays, appState.duration, selectedMemberEmails]);
+
+  const isDateAvailable = (date: Date) => {
+    return availableDateSet.has(format(date, 'yyyy-MM-dd'));
+  };
 
   const handleDateSelect = (date: Date) => {
     console.log('Date selected:', date);
