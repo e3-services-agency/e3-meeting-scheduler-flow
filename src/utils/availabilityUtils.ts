@@ -1,14 +1,14 @@
 
 import { GoogleCalendarService } from './googleCalendarService';
 
-// Generate time slots for a given date (9 AM to 5 PM in 30-minute intervals)
-function generateTimeSlots(dateStr: string): string[] {
+// Generate time slots for a given date (9 AM to 5 PM based on duration intervals)
+function generateTimeSlots(dateStr: string, durationMinutes: number = 30): string[] {
   const slots: string[] = [];
   const date = new Date(dateStr + 'T00:00:00');
   
-  // Generate slots from 9 AM to 5 PM (30-minute intervals)
+  // Generate slots from 9 AM to 5 PM using the specified duration as intervals
   for (let hour = 9; hour < 17; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
+    for (let minute = 0; minute < 60; minute += durationMinutes) {
       const slotDate = new Date(date);
       slotDate.setHours(hour, minute, 0, 0);
       slots.push(slotDate.toISOString());
@@ -31,7 +31,7 @@ export async function findCommonAvailableSlots(
   }
 
   const dateStr = date.toISOString().split('T')[0];
-  const timeSlots = generateTimeSlots(dateStr);
+  const timeSlots = generateTimeSlots(dateStr, durationMinutes);
   const availableSlots: Array<{ start: string; end: string }> = [];
   
   for (const slot of timeSlots) {

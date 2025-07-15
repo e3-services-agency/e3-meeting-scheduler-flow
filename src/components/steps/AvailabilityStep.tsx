@@ -132,8 +132,8 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const dateEnd = new Date(selectedDate);
       dateEnd.setHours(endHour, 0, 0, 0);
       
-      // Generate slots every 30 minutes
-      const slotInterval = 30;
+      // Generate slots based on the selected duration
+      const slotInterval = duration;
       for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
         const slotEnd = new Date(time.getTime() + duration * 60000);
         
@@ -166,7 +166,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const duration = appState.duration || 60;
     const startHour = 9;
     const endHour = 18;
-    const slotInterval = 30;
+    const slotInterval = duration;
 
     calendarDays.forEach(date => {
       const dateStart = new Date(date);
@@ -223,6 +223,13 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     return appState.selectedTime === slot.start;
   };
 
+  const formatTimeSlot = (time: Date) => {
+    if (appState.timeFormat === '24h') {
+      return format(time, 'HH:mm');
+    }
+    return format(time, 'h:mm a');
+  };
+
   // Check if we have any team members with calendar access
   const hasConnectedMembers = connectedMembers.length > 0;
   const hasSelectedConnectedMembers = selectedMembers.length > 0;
@@ -268,6 +275,42 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         <div>
           <h2 className="text-xl font-bold text-e3-white">Select Date & Time</h2>
           <p className="text-e3-white/60">Choose when you'd like to schedule the meeting</p>
+        </div>
+      </div>
+
+      {/* Timezone and Time Format Controls */}
+      <div className="flex justify-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <label htmlFor="timezone" className="text-sm text-e3-white/80">Timezone:</label>
+          <select
+            id="timezone"
+            value={appState.timezone}
+            onChange={(e) => onStateChange({ timezone: e.target.value })}
+            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-sm text-e3-white focus:border-e3-azure outline-none"
+          >
+            <option value="UTC">UTC</option>
+            <option value="America/New_York">Eastern Time</option>
+            <option value="America/Chicago">Central Time</option>
+            <option value="America/Denver">Mountain Time</option>
+            <option value="America/Los_Angeles">Pacific Time</option>
+            <option value="Europe/London">London</option>
+            <option value="Europe/Paris">Paris</option>
+            <option value="Asia/Tokyo">Tokyo</option>
+            <option value="Asia/Shanghai">Shanghai</option>
+            <option value="Australia/Sydney">Sydney</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="timeFormat" className="text-sm text-e3-white/80">Time Format:</label>
+          <select
+            id="timeFormat"
+            value={appState.timeFormat}
+            onChange={(e) => onStateChange({ timeFormat: e.target.value as '12h' | '24h' })}
+            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-sm text-e3-white focus:border-e3-azure outline-none"
+          >
+            <option value="12h">12 Hour</option>
+            <option value="24h">24 Hour</option>
+          </select>
         </div>
       </div>
 
@@ -392,7 +435,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                       }
                     `}
                   >
-                    {format(startTime, 'h:mm a')}
+                    {formatTimeSlot(startTime)}
                   </button>
                 );
               })}

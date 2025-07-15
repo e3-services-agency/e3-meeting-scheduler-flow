@@ -16,6 +16,8 @@ export interface AppState {
   selectedDate: string | null;
   selectedTime: string | null;
   guestEmails: string[];
+  timezone: string;
+  timeFormat: '12h' | '24h';
   steps: { name: string }[];
 }
 

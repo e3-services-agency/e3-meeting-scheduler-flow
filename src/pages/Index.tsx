@@ -18,6 +18,8 @@ const initialState: AppState = {
   selectedDate: null,
   selectedTime: null,
   guestEmails: [],
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  timeFormat: '12h',
   steps: [
     { name: 'Duration' },
     { name: 'Team' },
