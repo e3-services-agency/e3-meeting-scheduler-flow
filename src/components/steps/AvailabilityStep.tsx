@@ -140,21 +140,29 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const startHour = 9;
       const endHour = 18;
       
-      // CRITICAL FIX: Create date objects properly in user's timezone
+      // CRITICAL FIX: Proper timezone-aware date handling
       const selectedDateStr = selectedDate.toISOString().split('T')[0]; // Get YYYY-MM-DD
       
-      // Create proper timezone-aware date construction using the user's timezone
-      // This ensures the date stays consistent across timezones
-      const year = parseInt(selectedDateStr.split('-')[0]);
-      const month = parseInt(selectedDateStr.split('-')[1]) - 1; // months are 0-indexed
-      const day = parseInt(selectedDateStr.split('-')[2]);
-      
-      const startTimeInUserTz = new Date(year, month, day, startHour, 0, 0, 0);
-      const endTimeInUserTz = new Date(year, month, day, endHour, 0, 0, 0);
-      
+      console.log('=== TIME SLOT GENERATION DEBUG ===');
+      console.log('Selected date object:', selectedDate);
       console.log('Selected date string:', selectedDateStr);
-      console.log('Date components:', { year, month: month + 1, day });
-      console.log('Working hours in local time:', startTimeInUserTz.toString(), 'to', endTimeInUserTz.toString());
+      console.log('User timezone:', userTimezone);
+      
+      // Create proper working hours in the user's timezone for the selected date
+      // We need to convert local time to UTC for storage and API calls
+      const startTimeString = `${selectedDateStr}T${startHour.toString().padStart(2, '0')}:00:00`;
+      const endTimeString = `${selectedDateStr}T${endHour.toString().padStart(2, '0')}:00:00`;
+      
+      // Create dates that represent the working hours in the user's local timezone
+      const startTimeInUserTz = new Date(startTimeString);
+      const endTimeInUserTz = new Date(endTimeString);
+      
+      console.log('Start time string:', startTimeString);
+      console.log('End time string:', endTimeString);
+      console.log('Start time object:', startTimeInUserTz.toISOString());
+      console.log('End time object:', endTimeInUserTz.toISOString());
+      console.log('Start time in user TZ:', startTimeInUserTz.toLocaleString("en-US", {timeZone: userTimezone}));
+      console.log('End time in user TZ:', endTimeInUserTz.toLocaleString("en-US", {timeZone: userTimezone}));
       
       // Generate slots based on the selected duration
       const slotInterval = duration;
@@ -163,32 +171,32 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       while (currentTime < endTimeInUserTz) {
         const slotEnd = new Date(currentTime.getTime() + duration * 60000);
         
-        // Convert to UTC for comparison with busy schedule (which is in UTC)
-        const slotStartUTC = new Date(currentTime.toLocaleString("en-US", {timeZone: "UTC"}));
-        const slotEndUTC = new Date(slotEnd.toLocaleString("en-US", {timeZone: "UTC"}));
+        console.log('=== SLOT CHECK ===');
+        console.log('Slot start (UTC):', currentTime.toISOString());
+        console.log('Slot start (user TZ):', currentTime.toLocaleString("en-US", {timeZone: userTimezone}));
+        console.log('Slot end (UTC):', slotEnd.toISOString());
+        console.log('Slot end (user TZ):', slotEnd.toLocaleString("en-US", {timeZone: userTimezone}));
         
-        console.log('Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
-        console.log('UTC equivalent:', slotStartUTC.toISOString(), 'to', slotEndUTC.toISOString());
-        
-        // Check if this slot conflicts with any busy time
+        // Check if this slot conflicts with any busy time (busy times are in UTC)
         const hasConflict = monthlyBusySchedule.some(busySlot => {
           const busyStart = new Date(busySlot.start);
           const busyEnd = new Date(busySlot.end);
           
           // Check for overlap: slot overlaps if it starts before busy ends and ends after busy starts
-          const overlaps = slotStartUTC < busyEnd && slotEndUTC > busyStart;
+          const overlaps = currentTime < busyEnd && slotEnd > busyStart;
           if (overlaps) {
-            console.log('Conflict found with:', busySlot.start, 'to', busySlot.end);
+            console.log('❌ CONFLICT found with:', busySlot.start, 'to', busySlot.end);
           }
           return overlaps;
         });
         
         if (!hasConflict && slotEnd <= endTimeInUserTz) {
+          // Store the time slot in ISO format (UTC)
           slots.push({
             start: currentTime.toISOString(),
             end: slotEnd.toISOString()
           });
-          console.log('Added available slot:', currentTime.toISOString());
+          console.log('✅ Added available slot:', currentTime.toISOString());
         }
         
         currentTime = new Date(currentTime.getTime() + slotInterval * 60000);

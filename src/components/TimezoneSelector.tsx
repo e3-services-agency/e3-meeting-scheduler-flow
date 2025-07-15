@@ -31,7 +31,7 @@ const TIMEZONES = [
   { value: 'America/Sao_Paulo', label: 'São Paulo', region: 'Americas' },
   { value: 'America/Buenos_Aires', label: 'Buenos Aires', region: 'Americas' },
   
-  // Europe
+  // Europe - Comprehensive list
   { value: 'Europe/London', label: 'London', region: 'Europe' },
   { value: 'Europe/Paris', label: 'Paris', region: 'Europe' },
   { value: 'Europe/Berlin', label: 'Berlin', region: 'Europe' },
@@ -41,6 +41,30 @@ const TIMEZONES = [
   { value: 'Europe/Stockholm', label: 'Stockholm', region: 'Europe' },
   { value: 'Europe/Moscow', label: 'Moscow', region: 'Europe' },
   { value: 'Europe/Istanbul', label: 'Istanbul', region: 'Europe' },
+  { value: 'Europe/Prague', label: 'Prague', region: 'Europe' },
+  { value: 'Europe/Vienna', label: 'Vienna', region: 'Europe' },
+  { value: 'Europe/Warsaw', label: 'Warsaw', region: 'Europe' },
+  { value: 'Europe/Budapest', label: 'Budapest', region: 'Europe' },
+  { value: 'Europe/Bucharest', label: 'Bucharest', region: 'Europe' },
+  { value: 'Europe/Bratislava', label: 'Bratislava', region: 'Europe' },
+  { value: 'Europe/Zagreb', label: 'Zagreb', region: 'Europe' },
+  { value: 'Europe/Ljubljana', label: 'Ljubljana', region: 'Europe' },
+  { value: 'Europe/Belgrade', label: 'Belgrade', region: 'Europe' },
+  { value: 'Europe/Sofia', label: 'Sofia', region: 'Europe' },
+  { value: 'Europe/Athens', label: 'Athens', region: 'Europe' },
+  { value: 'Europe/Helsinki', label: 'Helsinki', region: 'Europe' },
+  { value: 'Europe/Oslo', label: 'Oslo', region: 'Europe' },
+  { value: 'Europe/Copenhagen', label: 'Copenhagen', region: 'Europe' },
+  { value: 'Europe/Zurich', label: 'Zurich', region: 'Europe' },
+  { value: 'Europe/Brussels', label: 'Brussels', region: 'Europe' },
+  { value: 'Europe/Luxembourg', label: 'Luxembourg', region: 'Europe' },
+  { value: 'Europe/Dublin', label: 'Dublin', region: 'Europe' },
+  { value: 'Europe/Lisbon', label: 'Lisbon', region: 'Europe' },
+  { value: 'Europe/Kiev', label: 'Kiev', region: 'Europe' },
+  { value: 'Europe/Minsk', label: 'Minsk', region: 'Europe' },
+  { value: 'Europe/Riga', label: 'Riga', region: 'Europe' },
+  { value: 'Europe/Vilnius', label: 'Vilnius', region: 'Europe' },
+  { value: 'Europe/Tallinn', label: 'Tallinn', region: 'Europe' },
   
   // Asia
   { value: 'Asia/Tokyo', label: 'Tokyo', region: 'Asia' },
@@ -122,7 +146,15 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({ value, onCha
     );
   }, [timezoneOptions, searchTerm]);
 
-  const selectedOption = timezoneOptions.find(option => option.value === value);
+  // If the current value is not in our list, add it dynamically
+  const selectedOption = timezoneOptions.find(option => option.value === value) || 
+    (value ? {
+      value,
+      label: value.split('/').pop()?.replace(/_/g, ' ') || value,
+      region: 'Other',
+      offset: 'UTC+0',
+      currentTime: '--:--'
+    } : undefined);
 
   const groupedOptions = useMemo(() => {
     const groups: Record<string, TimezoneOption[]> = {};
