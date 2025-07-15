@@ -1,15 +1,101 @@
 
 import React, { useState } from 'react';
 import { StepProps } from '../../types/scheduling';
-import { mockTeam } from '../../data/mockData';
+import { useTeamData } from '../../hooks/useTeamData';
+import { GoogleCalendarService } from '../../utils/googleCalendarService';
+import { supabase } from '../../integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange }) => {
   const [isBooked, setIsBooked] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+  const { teamMembers } = useTeamData();
 
-  const confirmBooking = () => {
-    // In a real app, this would be an API call
-    console.log("Booking confirmed with state:", appState);
-    setIsBooked(true);
+  const confirmBooking = async () => {
+    if (!appState.selectedTime || !appState.selectedDate) {
+      toast.error('Missing required booking information');
+      return;
+    }
+
+    setIsBooking(true);
+    
+    try {
+      // Calculate start and end times
+      const startTime = new Date(appState.selectedTime);
+      const endTime = new Date(startTime.getTime() + (appState.duration || 60) * 60000);
+
+      // Get selected team members
+      const requiredMembers = teamMembers.filter(m => appState.requiredMembers.has(m.id));
+      const optionalMembers = teamMembers.filter(m => appState.optionalMembers.has(m.id));
+      const allMembers = [...requiredMembers, ...optionalMembers];
+
+      // Prepare attendee emails
+      const attendeeEmails = [
+        ...allMembers.map(m => m.email),
+        ...appState.guestEmails
+      ];
+
+      // Save meeting to database
+      const { data: meeting, error: dbError } = await (supabase as any)
+        .from('meetings')
+        .insert({
+          title: `Meeting with ${requiredMembers.map(m => m.name).join(', ')}`,
+          description: `Meeting scheduled via team scheduling system`,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+          organizer_email: requiredMembers[0]?.email || 'admin@e3-services.com',
+          attendee_emails: attendeeEmails,
+          status: 'scheduled'
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error('Failed to save meeting to database');
+      }
+
+      console.log('Meeting saved to database:', meeting);
+
+      // Create calendar event
+      const eventData = {
+        summary: `Meeting with ${requiredMembers.map(m => m.name).join(', ')}`,
+        description: `Team meeting scheduled via team scheduling system.\n\nRequired attendees: ${requiredMembers.map(m => m.name).join(', ')}\n${optionalMembers.length > 0 ? `Optional attendees: ${optionalMembers.map(m => m.name).join(', ')}` : ''}`,
+        start: {
+          dateTime: startTime.toISOString(),
+          timeZone: 'UTC'
+        },
+        end: {
+          dateTime: endTime.toISOString(),
+          timeZone: 'UTC'
+        },
+        attendees: attendeeEmails.map(email => ({ email }))
+      };
+
+      // Create calendar event using the first required member's calendar
+      const organizerEmail = requiredMembers[0]?.email || 'admin@e3-services.com';
+      
+      console.log('Creating calendar event with organizer:', organizerEmail);
+      const calendarResult = await GoogleCalendarService.createEvent(organizerEmail, eventData);
+      
+      console.log('Calendar event created:', calendarResult);
+
+      // Update meeting with Google event ID
+      if (calendarResult?.event?.id) {
+        await (supabase as any)
+          .from('meetings')
+          .update({ google_event_id: calendarResult.event.id })
+          .eq('id', meeting.id);
+      }
+
+      toast.success('Meeting booked successfully! Calendar invites have been sent.');
+      setIsBooked(true);
+    } catch (error) {
+      console.error('Error booking meeting:', error);
+      toast.error(`Failed to book meeting: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   const resetFlow = () => {
@@ -35,8 +121,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     day: 'numeric' 
   });
   
-  const requiredTeam = mockTeam.filter(m => appState.requiredMembers.has(m.id));
-  const optionalTeam = mockTeam.filter(m => appState.optionalMembers.has(m.id));
+  // Get selected team members
+  const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
+  const optionalTeam = teamMembers.filter(m => appState.optionalMembers.has(m.id));
 
   if (isBooked) {
     return (
@@ -44,7 +131,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         <h2 id="success-heading" className="sub-heading text-e3-emerald mb-4">
           Meeting Scheduled Successfully!
         </h2>
-        <p className="mb-6">A confirmation has been mocked. Check your mock calendar.</p>
+        <p className="mb-6">Your meeting has been scheduled and calendar invites have been sent to all attendees.</p>
         <a 
           href={`https://calendar.app/mock-${Date.now()}`} 
           target="_blank" 
@@ -111,8 +198,12 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         >
           Back
         </button>
-        <button onClick={confirmBooking} className="cta focusable flex-grow">
-          Confirm & Book Meeting
+        <button 
+          onClick={confirmBooking} 
+          disabled={isBooking}
+          className="cta focusable flex-grow disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isBooking ? 'Booking Meeting...' : 'Confirm & Book Meeting'}
         </button>
       </div>
     </div>
