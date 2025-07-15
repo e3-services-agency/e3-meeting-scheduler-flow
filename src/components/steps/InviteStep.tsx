@@ -40,9 +40,9 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
   };
 
   return (
-    <div className="step animate-fade-in" aria-labelledby="step4-heading">
-      <h2 id="step4-heading" className="sub-heading mb-2">4. Invite Guests (Optional)</h2>
-      <p className="text-e3-white/70 mb-6">Add email addresses for anyone else you'd like to invite.</p>
+    <div className="step animate-fade-in" aria-labelledby="step5-heading">
+      <h2 id="step5-heading" className="text-2xl font-bold text-e3-white text-center mb-2">5. Invite Guests (Optional)</h2>
+      <p className="text-e3-white/70 mb-6 text-center">Add email addresses for anyone else you'd like to invite.</p>
       
       <div className="flex flex-wrap gap-2 mb-4">
         {localGuestEmails.map(email => (
@@ -67,11 +67,17 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
         className="focusable w-full p-3 bg-e3-space-blue border border-e3-azure rounded-lg focus:ring-2 focus:ring-e3-azure outline-none"
       />
       
-      <div className="mt-8 flex justify-between">
-        <button onClick={onBack} className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition">
+      <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
+        <button 
+          onClick={onBack} 
+          className="order-2 sm:order-1 py-3 px-6 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40"
+        >
           Back
         </button>
-        <button onClick={onNext} className="cta focusable">
+        <button 
+          onClick={onNext} 
+          className="order-1 sm:order-2 py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition"
+        >
           Review Booking
         </button>
       </div>

@@ -31,13 +31,22 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
   // Get selected team members with calendar access - memoize to prevent infinite loops
   const selectedMembers = useMemo(() => {
-    return Array.from(appState.requiredMembers)
+    const requiredMembers = Array.from(appState.requiredMembers)
       .map(memberId => connectedMembers.find(m => m.id === memberId))
       .filter(Boolean);
-  }, [appState.requiredMembers, connectedMembers]);
+    
+    const optionalMembers = Array.from(appState.optionalMembers)
+      .map(memberId => connectedMembers.find(m => m.id === memberId))
+      .filter(Boolean);
+    
+    return { required: requiredMembers, optional: optionalMembers, all: [...requiredMembers, ...optionalMembers] };
+  }, [appState.requiredMembers, appState.optionalMembers, connectedMembers]);
 
   const selectedMemberEmails = useMemo(() => {
-    return selectedMembers.map(member => member?.email).filter(Boolean) as string[];
+    return {
+      required: selectedMembers.required.map(member => member?.email).filter(Boolean) as string[],
+      all: selectedMembers.all.map(member => member?.email).filter(Boolean) as string[]
+    };
   }, [selectedMembers]);
 
   // Generate calendar days for full month view
@@ -52,8 +61,8 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const loadMonthlyAvailability = async () => {
       console.log('loadMonthlyAvailability triggered, selectedMemberEmails:', selectedMemberEmails);
       
-      if (selectedMemberEmails.length === 0) {
-        console.log('No selected member emails, clearing schedule');
+      if (selectedMemberEmails.required.length === 0) {
+        console.log('No required member emails, clearing schedule');
         setMonthlyBusySchedule([]);
         setLoading(false);
         return;
@@ -70,13 +79,13 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         const timeMin = start.toISOString();
         const timeMax = end.toISOString();
 
-        console.log('Loading monthly availability for period:', timeMin, 'to', timeMax, 'members:', selectedMemberEmails);
+        console.log('Loading monthly availability for period:', timeMin, 'to', timeMax, 'required members:', selectedMemberEmails.required);
         
-        // Call google-auth edge function to get busy schedule for all members
+        // Call google-auth edge function to get busy schedule for required members only
         const { data, error } = await supabase.functions.invoke('google-auth', {
           body: {
             action: 'check_availability',
-            userEmails: selectedMemberEmails,
+            userEmails: selectedMemberEmails.required,
             eventData: { timeMin, timeMax }
           }
         });
@@ -109,7 +118,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
 
     loadMonthlyAvailability();
-  }, [currentMonth, selectedMemberEmails.length > 0 ? selectedMemberEmails.join(',') : 'empty']);
+  }, [currentMonth, selectedMemberEmails.required.length > 0 ? selectedMemberEmails.required.join(',') : 'empty']);
 
   // Calculate available slots for selected date
   useEffect(() => {
@@ -170,7 +179,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone]);
 
   const availableDateSet = useMemo(() => {
-    if (selectedMemberEmails.length === 0) return new Set<string>();
+    if (selectedMemberEmails.required.length === 0) return new Set<string>();
 
     const availableDates = new Set<string>();
     const duration = appState.duration || 60;
@@ -198,7 +207,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       }
     });
     return availableDates;
-  }, [monthlyBusySchedule, calendarDays, appState.duration, selectedMemberEmails]);
+  }, [monthlyBusySchedule, calendarDays, appState.duration, selectedMemberEmails.required]);
 
   const isDateAvailable = (date: Date) => {
     return availableDateSet.has(format(date, 'yyyy-MM-dd'));
@@ -245,7 +254,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
   // Check if we have any team members with calendar access
   const hasConnectedMembers = connectedMembers.length > 0;
-  const hasSelectedConnectedMembers = selectedMembers.length > 0;
+  const hasSelectedConnectedMembers = selectedMembers.required.length > 0;
 
   if (!hasConnectedMembers) {
     return (
@@ -275,6 +284,10 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           </p>
           <p className="text-e3-white/60 text-sm">
             Connected members: {connectedMembers.map(m => m.name).join(', ')}
+          </p>
+          <p className="text-e3-white/60 text-sm mt-2">
+            <span className="text-e3-emerald">Required:</span> {selectedMembers.required.map(m => m.name).join(', ')} | 
+            <span className="text-e3-azure ml-2">Optional:</span> {selectedMembers.optional.map(m => m.name).join(', ')}
           </p>
         </div>
       </div>
@@ -464,7 +477,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           Checking availability for:
         </h4>
         <div className="flex flex-wrap gap-2">
-          {selectedMembers.map(member => (
+          {selectedMembers.all.map(member => (
             <span key={member?.id} className="px-2 py-1 bg-e3-emerald/20 text-e3-emerald text-xs rounded-full">
               {member?.name}
             </span>

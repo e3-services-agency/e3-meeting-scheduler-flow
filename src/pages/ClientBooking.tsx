@@ -5,6 +5,7 @@ import ProgressBar from '../components/ProgressBar';
 import DurationStep from '../components/steps/DurationStep';
 import TeamStep from '../components/steps/TeamStep';
 import AvailabilityStep from '../components/steps/AvailabilityStep';
+import BookerInfoStep from '../components/steps/BookerInfoStep';
 import InviteStep from '../components/steps/InviteStep';
 import ConfirmationStep from '../components/steps/ConfirmationStep';
 import { supabase } from '../integrations/supabase/client';
@@ -18,7 +19,7 @@ const ClientBooking: React.FC = () => {
 
   const initialState: AppState = {
     currentStep: 1,
-    totalSteps: 5,
+    totalSteps: 6,
     duration: null,
     requiredMembers: new Set<string>(),
     optionalMembers: new Set<string>(),
@@ -34,6 +35,7 @@ const ClientBooking: React.FC = () => {
       { name: 'DURATION' },
       { name: 'TEAM' },
       { name: 'DATE & TIME' },
+      { name: 'YOUR INFO' },
       { name: 'GUESTS' },
       { name: 'CONFIRM' }
     ]
@@ -113,8 +115,10 @@ const ClientBooking: React.FC = () => {
       case 3:
         return <AvailabilityStep {...stepProps} />;
       case 4:
-        return <InviteStep {...stepProps} />;
+        return <BookerInfoStep {...stepProps} />;
       case 5:
+        return <InviteStep {...stepProps} />;
+      case 6:
         return <ConfirmationStep {...stepProps} />;
       default:
         return <DurationStep {...stepProps} />;
@@ -143,32 +147,32 @@ const ClientBooking: React.FC = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-e3-space-blue p-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-8 text-center">
-          <img 
-            src={e3Logo} 
-            alt="E3 Logo" 
-            className="h-12 md:h-16 mx-auto mb-4"
-          />
-          <h1 className="heading text-e3-emerald mb-2">Schedule a Meeting</h1>
-          <p className="text-e3-white/80 mb-4">Book a session with {clientTeam.name} team</p>
-          <p className="text-e3-white/60 text-sm">Follow the steps below to book your session.</p>
-        </header>
-        
-        <div className="mb-8">
-          <ProgressBar 
-            appState={appState}
-          />
+    return (
+      <div className="min-h-screen bg-e3-space-blue p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto">
+          <header className="mb-6 sm:mb-8 text-center">
+            <img 
+              src={e3Logo} 
+              alt="E3 Logo" 
+              className="h-10 sm:h-12 md:h-16 mx-auto mb-4"
+            />
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-e3-emerald mb-2">Schedule a Meeting</h1>
+            <p className="text-e3-white/80 mb-4 text-sm sm:text-base">Book a session with {clientTeam.name} team</p>
+            <p className="text-e3-white/60 text-xs sm:text-sm">Follow the steps below to book your session.</p>
+          </header>
+          
+          <div className="mb-6 sm:mb-8">
+            <ProgressBar 
+              appState={appState}
+            />
+          </div>
+          
+          <main className="px-2 sm:px-0">
+            {renderStep()}
+          </main>
         </div>
-        
-        <main>
-          {renderStep()}
-        </main>
       </div>
-    </div>
-  );
+    );
 };
 
 export default ClientBooking;
