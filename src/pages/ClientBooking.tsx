@@ -19,8 +19,8 @@ const ClientBooking: React.FC = () => {
 
   const initialState: AppState = {
     currentStep: 1,
-    totalSteps: 6,
-    duration: null,
+    totalSteps: 5,
+    duration: 60, // Default to 60 minutes
     requiredMembers: new Set<string>(),
     optionalMembers: new Set<string>(),
     selectedDate: null,
@@ -32,7 +32,6 @@ const ClientBooking: React.FC = () => {
     bookingDescription: '',
     clientTeamId: '',
     steps: [
-      { name: 'DURATION' },
       { name: 'TEAM' },
       { name: 'DATE & TIME' },
       { name: 'YOUR INFO' },
@@ -113,19 +112,17 @@ const ClientBooking: React.FC = () => {
 
     switch (appState.currentStep) {
       case 1:
-        return <DurationStep {...stepProps} />;
-      case 2:
         return <TeamStep {...stepProps} clientTeamFilter={clientTeam?.id} />;
-      case 3:
+      case 2:
         return <AvailabilityStep {...stepProps} />;
-      case 4:
+      case 3:
         return <BookerInfoStep {...stepProps} />;
-      case 5:
+      case 4:
         return <InviteStep {...stepProps} />;
-      case 6:
+      case 5:
         return <ConfirmationStep {...stepProps} />;
       default:
-        return <DurationStep {...stepProps} />;
+        return <TeamStep {...stepProps} clientTeamFilter={clientTeam?.id} />;
     }
   };
 

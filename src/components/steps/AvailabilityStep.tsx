@@ -464,8 +464,28 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           </div>
         </div>
 
-        {/* Time Slots */}
+        {/* Time Slots with Duration Selection */}
         <div className="bg-e3-space-blue/50 rounded-lg p-6 border border-e3-white/10">
+          {/* Duration Selection */}
+          <div className="mb-6">
+            <h3 className="text-e3-white font-medium mb-3 text-sm">Duration</h3>
+            <div className="flex gap-2">
+              {[30, 45, 60, 90].map((duration) => (
+                <button
+                  key={duration}
+                  onClick={() => onStateChange({ duration })}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    appState.duration === duration
+                      ? 'bg-e3-emerald text-e3-space-blue font-medium'
+                      : 'bg-e3-space-blue/30 text-e3-white/80 hover:bg-e3-emerald/20 hover:text-e3-white border border-e3-white/20'
+                  }`}
+                >
+                  {duration === 60 ? '1 hour' : `${duration} min`}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-e3-azure" />
