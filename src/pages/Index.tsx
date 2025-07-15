@@ -31,7 +31,13 @@ const Index = () => {
   const [appState, setAppState] = useState<AppState>(initialState);
 
   const handleStateChange = (newState: Partial<AppState>) => {
-    setAppState(prevState => ({ ...prevState, ...newState }));
+    console.log('State change called with:', newState);
+    console.log('Current appState before change:', appState);
+    setAppState(prevState => {
+      const newAppState = { ...prevState, ...newState };
+      console.log('New appState after change:', newAppState);
+      return newAppState;
+    });
   };
 
   const goNext = () => {

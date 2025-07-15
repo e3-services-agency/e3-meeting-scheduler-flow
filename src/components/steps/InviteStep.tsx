@@ -11,8 +11,12 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
       const email = emailInputRef.current?.value.trim();
       if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         if (!appState.guestEmails.includes(email)) {
+          console.log('Adding guest email:', email);
+          console.log('Current guest emails before adding:', appState.guestEmails);
+          const newGuestEmails = [...appState.guestEmails, email];
+          console.log('New guest emails after adding:', newGuestEmails);
           onStateChange({
-            guestEmails: [...appState.guestEmails, email]
+            guestEmails: newGuestEmails
           });
         }
         if (emailInputRef.current) {
