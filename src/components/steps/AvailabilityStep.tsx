@@ -50,10 +50,10 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
   }, [selectedMembers]);
 
-  // Generate calendar days for full month view
+  // Generate calendar days for full month view - start from Monday
   const calendarDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(currentMonth));
-    const end = endOfWeek(endOfMonth(currentMonth));
+    const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }); // Monday = 1
+    const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
@@ -73,9 +73,9 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       setError(null);
       
       try {
-        // Calculate time range for entire visible calendar grid
-        const start = startOfWeek(startOfMonth(currentMonth));
-        const end = endOfWeek(endOfMonth(currentMonth));
+        // Calculate time range for entire visible calendar grid - start from Monday
+        const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
+        const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
         
         const timeMin = start.toISOString();
         const timeMax = end.toISOString();
@@ -420,7 +420,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           )}
 
           <div className="grid grid-cols-7 gap-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
               <div key={day} className="text-center text-sm font-medium text-e3-white/60 py-2">
                 {day}
               </div>
@@ -524,7 +524,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto custom-scrollbar">
+            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
               {availableSlots.map((slot, index) => {
                 const startTime = parseISO(slot.start);
                 const isSelected = isTimeSelected(slot);
@@ -534,10 +534,10 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                      key={index}
                      onClick={() => handleTimeSelect(slot)}
                      className={`
-                       relative p-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between
+                       relative p-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-between
                        ${isSelected 
-                         ? 'bg-e3-emerald text-e3-white shadow-lg scale-105' 
-                         : 'bg-e3-space-blue/80 border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50 hover:scale-102'
+                         ? 'bg-e3-emerald text-e3-space-blue shadow-lg transform-none' 
+                         : 'bg-e3-space-blue/80 border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50 transform-none'
                        }
                      `}
                    >
