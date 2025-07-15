@@ -48,9 +48,18 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     setIsBooking(true);
     
     try {
-      // Calculate start and end times
+      // CRITICAL FIX: Proper timezone handling for date/time
+      const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('Creating meeting with timezone:', userTimezone);
+      console.log('Selected time string:', appState.selectedTime);
+      
+      // Parse the selected time correctly - it's already in ISO format but we need to ensure proper timezone handling
       const startTime = new Date(appState.selectedTime);
+      console.log('Parsed start time:', startTime.toISOString());
+      console.log('Start time in user timezone:', startTime.toLocaleString("en-US", {timeZone: userTimezone}));
+      
       const endTime = new Date(startTime.getTime() + (appState.duration || 60) * 60000);
+      console.log('End time:', endTime.toISOString());
 
       // Get selected team members
       const requiredMembers = teamMembers.filter(m => appState.requiredMembers.has(m.id));
@@ -108,11 +117,11 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         description: calendarDescription,
         start: {
           dateTime: startTime.toISOString(),
-          timeZone: appState.timezone || 'UTC'
+          timeZone: userTimezone
         },
         end: {
           dateTime: endTime.toISOString(),
-          timeZone: appState.timezone || 'UTC'
+          timeZone: userTimezone
         },
         attendees: attendeeEmails.map(email => ({ email }))
       };
@@ -168,12 +177,19 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   if (!appState.selectedTime) return null;
 
   const selectedTime = new Date(appState.selectedTime);
-  const timeString = selectedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  const timeString = selectedTime.toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    timeZone: userTimezone
+  });
   const dateString = selectedTime.toLocaleDateString([], { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
-    day: 'numeric' 
+    day: 'numeric',
+    timeZone: userTimezone
   });
   
   // Get selected team members
@@ -191,22 +207,42 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         </h2>
         <p className="text-e3-white/80 mb-6">Your meeting has been scheduled and calendar invites have been sent to all attendees.</p>
         
-        {/* Success Summary */}
-        <div className="bg-e3-space-blue/30 rounded-lg p-6 mb-6 text-left max-w-md mx-auto">
-          <h3 className="text-lg font-semibold text-e3-emerald mb-4">Booking Summary</h3>
-          <div className="space-y-2 text-sm">
-            <div><strong className="text-e3-azure">Title:</strong> {sessionTitle}</div>
-            <div><strong className="text-e3-azure">Date:</strong> {dateString}</div>
-            <div><strong className="text-e3-azure">Time:</strong> {timeString}</div>
-            <div><strong className="text-e3-azure">Duration:</strong> {appState.duration} minutes</div>
-            <div><strong className="text-e3-azure">Timezone:</strong> {appState.timezone || 'UTC'}</div>
-            <div><strong className="text-e3-azure">Contact:</strong> {appState.bookerEmail}</div>
-            <div>
-              <strong className="text-e3-azure">Required:</strong> {requiredTeam.map(m => m.name).join(', ')}
+        {/* Improved Success Summary with Better Layout */}
+        <div className="bg-e3-space-blue/30 rounded-lg p-6 mb-6 text-left border border-e3-emerald/20">
+          <h3 className="text-lg font-semibold text-e3-emerald mb-4 text-center">Booking Summary</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Title:</span>
+              <span className="text-e3-white sm:block">{sessionTitle}</span>
+            </div>
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Date:</span>
+              <span className="text-e3-white sm:block">{dateString}</span>
+            </div>
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Time:</span>
+              <span className="text-e3-white sm:block">{timeString}</span>
+            </div>
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Duration:</span>
+              <span className="text-e3-white sm:block">{appState.duration} minutes</span>
+            </div>
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Timezone:</span>
+              <span className="text-e3-white sm:block">{userTimezone}</span>
+            </div>
+            <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Contact:</span>
+              <span className="text-e3-white sm:block">{appState.bookerEmail}</span>
+            </div>
+            <div className="sm:col-span-2">
+              <span className="text-e3-azure font-medium">Required:</span>
+              <span className="text-e3-white ml-2">{requiredTeam.map(m => m.name).join(', ')}</span>
             </div>
             {optionalTeam.length > 0 && (
-              <div>
-                <strong className="text-e3-azure">Optional:</strong> {optionalTeam.map(m => m.name).join(', ')}
+              <div className="sm:col-span-2">
+                <span className="text-e3-azure font-medium">Optional:</span>
+                <span className="text-e3-white ml-2">{optionalTeam.map(m => m.name).join(', ')}</span>
               </div>
             )}
           </div>
@@ -214,7 +250,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         
         <button 
           onClick={resetFlow} 
-          className="py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition"
+          className="cta focusable"
         >
           Schedule Another Meeting
         </button>
@@ -263,7 +299,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
                 Duration: {appState.duration} minutes
               </div>
               <div className="text-e3-white/80 text-sm">
-                Timezone: {appState.timezone || 'UTC'}
+                Timezone: {userTimezone}
               </div>
             </div>
           </div>
@@ -366,7 +402,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
           <button 
             onClick={confirmBooking}
             disabled={isBooking}
-            className="order-1 sm:order-2 py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="order-1 sm:order-2 cta disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}
           </button>
@@ -377,7 +413,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
           <button 
             onClick={confirmBooking}
             disabled={isBooking}
-            className="w-full py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full cta disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}
           </button>

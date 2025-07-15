@@ -113,7 +113,7 @@ const BookerInfoStep: React.FC<StepProps> = ({ appState, onNext, onBack, onState
         </button>
         <button 
           onClick={handleNext}
-          className="order-1 sm:order-2 py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition disabled:opacity-50"
+          className="order-1 sm:order-2 cta"
         >
           Add Guests (Optional)
         </button>
@@ -123,7 +123,7 @@ const BookerInfoStep: React.FC<StepProps> = ({ appState, onNext, onBack, onState
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-e3-space-blue/95 backdrop-blur-sm border-t border-e3-white/10 sm:hidden z-50">
         <button 
           onClick={handleNext}
-          className="w-full py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition disabled:opacity-50"
+          className="w-full cta"
         >
           Add Guests (Optional)
         </button>
