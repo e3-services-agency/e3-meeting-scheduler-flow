@@ -24,6 +24,7 @@ export interface AppState {
   bookingDescription?: string;
   bookingImages?: string[];
   bookingLinks?: { name: string; url: string }[];
+  clientTeamId?: string;
 }
 
 export interface StepProps {

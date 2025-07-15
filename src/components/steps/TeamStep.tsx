@@ -4,7 +4,11 @@ import { StepProps } from '../../types/scheduling';
 import { useTeamData } from '../../hooks/useTeamData';
 import { Loader } from 'lucide-react';
 
-const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange }) => {
+interface TeamStepProps extends StepProps {
+  clientTeamFilter?: string;
+}
+
+const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateChange, clientTeamFilter }) => {
   const [error, setError] = useState('');
   const { teamMembers, loading, error: dataError } = useTeamData();
 
@@ -71,13 +75,20 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
     );
   }
 
-  if (teamMembers.length === 0) {
+  // Filter team members by client team if specified
+  const filteredTeamMembers = clientTeamFilter 
+    ? teamMembers.filter(member => 
+        member.clientTeams.some(team => team.id === clientTeamFilter)
+      )
+    : teamMembers;
+
+  if (filteredTeamMembers.length === 0) {
     return (
       <div className="step animate-fade-in">
         <h2 className="sub-heading mb-6">2. Choose Team Members</h2>
         <div className="text-center py-12">
-          <p className="text-e3-white/60 mb-4">No team members found.</p>
-          <p className="text-e3-white/60">Please add team members in the Team Configuration page first.</p>
+          <p className="text-e3-white/60 mb-4">No team members available for this client.</p>
+          <p className="text-e3-white/60">Please contact support if this seems incorrect.</p>
         </div>
         <div className="mt-8 flex justify-between">
           <button onClick={onBack} className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition">
@@ -92,7 +103,7 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
     <div className="step animate-fade-in" aria-labelledby="step2-heading">
       <h2 id="step2-heading" className="sub-heading mb-6">2. Choose Team Members</h2>
       <div id="team-list" className="space-y-4">
-        {teamMembers.map(member => {
+        {filteredTeamMembers.map(member => {
           const isRequired = appState.requiredMembers.has(member.id);
           const isOptional = appState.optionalMembers.has(member.id);
           
@@ -125,15 +136,30 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
                   <p className="text-sm text-e3-white/70">{member.role}</p>
                   {member.clientTeams.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {member.clientTeams.slice(0, 3).map(team => (
-                        <span
-                          key={team.id}
-                          className="px-2 py-0.5 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
-                        >
-                          {team.name}
-                        </span>
-                      ))}
-                      {member.clientTeams.length > 3 && (
+                        {/* Only show client teams that match the filter */}
+                        {clientTeamFilter ? (
+                          member.clientTeams
+                            .filter(team => team.id === clientTeamFilter)
+                            .slice(0, 3)
+                            .map(team => (
+                              <span
+                                key={team.id}
+                                className="px-2 py-0.5 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
+                              >
+                                {team.name}
+                              </span>
+                            ))
+                        ) : (
+                          member.clientTeams.slice(0, 3).map(team => (
+                            <span
+                              key={team.id}
+                              className="px-2 py-0.5 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
+                            >
+                              {team.name}
+                            </span>
+                          ))
+                        )}
+                        {!clientTeamFilter && member.clientTeams.length > 3 && (
                         <span className="px-2 py-0.5 text-e3-white/40 text-xs">
                           +{member.clientTeams.length - 3} more
                         </span>

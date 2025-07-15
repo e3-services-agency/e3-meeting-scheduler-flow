@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Calendar, Users, Database, ArrowLeft, Plus, Edit, Trash2, Save, X, CheckCircle, AlertCircle, BarChart3, Activity } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Settings, Calendar, Users, Database, ArrowLeft, Plus, Edit, Trash2, Save, X, CheckCircle, AlertCircle, BarChart3, Activity, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 
 const AdminSettings: React.FC = () => {
+  const navigate = useNavigate();
   const [hasGoogleCredentials, setHasGoogleCredentials] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'calendar' | 'team' | 'roles' | 'database'>('calendar');
@@ -34,6 +35,11 @@ const AdminSettings: React.FC = () => {
     defaultDuration: 60,
     syncFrequency: 15
   });
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth');
+  };
 
   useEffect(() => {
     loadAllData();
@@ -327,17 +333,26 @@ const AdminSettings: React.FC = () => {
     <div className="min-h-screen bg-e3-space-blue p-6">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link 
-              to="/team-config" 
-              className="p-2 text-e3-white/60 hover:text-e3-white transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="heading text-e3-emerald mb-2">Admin Settings</h1>
-              <p className="text-e3-white/80">Manage system-wide configurations and integrations</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link 
+                to="/team-config" 
+                className="p-2 text-e3-white/60 hover:text-e3-white transition"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <div>
+                <h1 className="heading text-e3-emerald mb-2">Admin Settings</h1>
+                <p className="text-e3-white/80">Manage system-wide configurations and integrations</p>
+              </div>
             </div>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-4 py-2 bg-e3-flame/20 text-e3-flame hover:bg-e3-flame/30 hover:text-e3-white transition rounded-lg"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
           </div>
         </header>
 
