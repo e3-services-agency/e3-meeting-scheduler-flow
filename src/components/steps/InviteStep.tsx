@@ -81,6 +81,16 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
           Review Booking
         </button>
       </div>
+
+      {/* Sticky CTA for mobile */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-e3-space-blue/95 backdrop-blur-sm border-t border-e3-white/10 sm:hidden z-50">
+        <button 
+          onClick={onNext} 
+          className="w-full py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition"
+        >
+          Review Booking
+        </button>
+      </div>
     </div>
   );
 };

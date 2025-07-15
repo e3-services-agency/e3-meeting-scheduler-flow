@@ -44,6 +44,10 @@ const ClientBooking: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(initialState);
 
   useEffect(() => {
+    // Auto-detect user timezone
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setAppState(prev => ({ ...prev, timezone: userTimezone }));
+
     const loadClientTeam = async () => {
       if (!clientSlug) {
         navigate('/');

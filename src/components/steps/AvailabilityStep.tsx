@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Clock, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Users, ChevronLeft, ChevronRight, Info, Filter } from 'lucide-react';
 import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, eachMinuteOfInterval, isWithinInterval } from 'date-fns';
 import { useTeamData } from '../../hooks/useTeamData';
 import { supabase } from '../../integrations/supabase/client';
@@ -21,6 +21,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   const [monthlyBusySchedule, setMonthlyBusySchedule] = useState<BusySlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showOnlyAllAvailable, setShowOnlyAllAvailable] = useState(false);
   
   const { teamMembers } = useTeamData();
 
@@ -341,6 +342,28 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         </div>
       </div>
 
+      {/* Availability Legend */}
+      <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-azure/20 mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Info className="w-4 h-4 text-e3-azure" />
+          <h4 className="text-sm font-medium text-e3-azure">Availability Legend</h4>
+        </div>
+        <div className="flex flex-wrap gap-4 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-e3-emerald/50 border border-e3-emerald"></div>
+            <span className="text-e3-white/80">Available for required members</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-e3-white/20 border border-e3-white/40"></div>
+            <span className="text-e3-white/80">No availability</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded bg-e3-azure border border-e3-azure"></div>
+            <span className="text-e3-white/80">Selected date</span>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
           <p className="text-red-400 text-sm">{error}</p>
@@ -442,7 +465,18 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           ) : availableSlots.length === 0 ? (
             <div className="text-center py-12 text-e3-white/60">
               <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No available times for selected date</p>
+              <p className="mb-4">No available times for required team members</p>
+              <div className="bg-e3-flame/10 border border-e3-flame/20 rounded-lg p-3 mb-4">
+                <p className="text-e3-flame text-sm mb-2">Try adjusting your selection:</p>
+                <ul className="text-xs text-e3-white/70 space-y-1">
+                  <li>• Choose fewer required team members</li>
+                  <li>• Select a different duration</li>
+                  <li>• Pick another date</li>
+                </ul>
+              </div>
+              <button className="px-4 py-2 bg-e3-azure/20 border border-e3-azure text-e3-azure rounded-lg text-sm hover:bg-e3-azure/30 transition">
+                Request Custom Time
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto custom-scrollbar">
@@ -486,17 +520,28 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between pt-6">
+      <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6">
         <button
           onClick={onBack}
-          className="px-6 py-2 border border-e3-white/20 text-e3-white rounded-lg hover:bg-e3-white/5 transition"
+          className="order-2 sm:order-1 py-3 px-6 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40"
         >
           Back
         </button>
         <button
           onClick={onNext}
           disabled={!appState.selectedDate || !appState.selectedTime}
-          className="px-6 py-2 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="order-1 sm:order-2 py-3 px-8 bg-e3-azure text-e3-white font-semibold rounded-lg hover:bg-e3-azure/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Continue
+        </button>
+      </div>
+
+      {/* Sticky CTA for mobile */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-e3-space-blue/95 backdrop-blur-sm border-t border-e3-white/10 sm:hidden z-50">
+        <button
+          onClick={onNext}
+          disabled={!appState.selectedDate || !appState.selectedTime}
+          className="w-full py-3 px-8 bg-e3-azure text-e3-white font-semibold rounded-lg hover:bg-e3-azure/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continue
         </button>

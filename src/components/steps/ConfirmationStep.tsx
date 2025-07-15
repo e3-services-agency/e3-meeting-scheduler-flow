@@ -17,14 +17,11 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   const [sessionTitle, setSessionTitle] = useState(() => {
     if (appState.bookingTitle) return appState.bookingTitle;
     
+    // Smart default: "Client Name x E3 Session"
     const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
-    const date = appState.selectedDate ? new Date(appState.selectedDate).toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    }) : '';
+    const clientName = requiredTeam.length > 0 ? requiredTeam[0]?.clientTeams?.[0]?.name || 'Client' : 'Client';
     
-    return `Session with ${requiredTeam.map(m => m.name).join(', ')} – ${date}`;
+    return `${clientName} x E3 Session`;
   });
   
   const [sessionDescription, setSessionDescription] = useState(appState.bookingDescription || '');
@@ -180,6 +177,28 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
           Meeting Scheduled Successfully!
         </h2>
         <p className="text-e3-white/80 mb-6">Your meeting has been scheduled and calendar invites have been sent to all attendees.</p>
+        
+        {/* Success Summary */}
+        <div className="bg-e3-space-blue/30 rounded-lg p-6 mb-6 text-left max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-e3-emerald mb-4">Booking Summary</h3>
+          <div className="space-y-2 text-sm">
+            <div><strong className="text-e3-azure">Title:</strong> {sessionTitle}</div>
+            <div><strong className="text-e3-azure">Date:</strong> {dateString}</div>
+            <div><strong className="text-e3-azure">Time:</strong> {timeString}</div>
+            <div><strong className="text-e3-azure">Duration:</strong> {appState.duration} minutes</div>
+            <div><strong className="text-e3-azure">Timezone:</strong> {appState.timezone || 'UTC'}</div>
+            <div><strong className="text-e3-azure">Contact:</strong> {appState.bookerEmail}</div>
+            <div>
+              <strong className="text-e3-azure">Required:</strong> {requiredTeam.map(m => m.name).join(', ')}
+            </div>
+            {optionalTeam.length > 0 && (
+              <div>
+                <strong className="text-e3-azure">Optional:</strong> {optionalTeam.map(m => m.name).join(', ')}
+              </div>
+            )}
+          </div>
+        </div>
+        
         <button 
           onClick={resetFlow} 
           className="py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition"
@@ -229,6 +248,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
               </div>
               <div className="text-e3-white/80 text-sm">
                 Duration: {appState.duration} minutes
+              </div>
+              <div className="text-e3-white/80 text-sm">
+                Timezone: {appState.timezone || 'UTC'}
               </div>
             </div>
           </div>
@@ -332,6 +354,17 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
             onClick={confirmBooking}
             disabled={isBooking}
             className="order-1 sm:order-2 py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}
+          </button>
+        </div>
+
+        {/* Sticky CTA for mobile */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-e3-space-blue/95 backdrop-blur-sm border-t border-e3-white/10 sm:hidden z-50">
+          <button 
+            onClick={confirmBooking}
+            disabled={isBooking}
+            className="w-full py-3 px-8 bg-e3-emerald text-e3-space-blue font-semibold rounded-lg hover:bg-e3-emerald/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}
           </button>
