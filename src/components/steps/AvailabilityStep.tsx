@@ -487,10 +487,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           </div>
           
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-e3-white flex items-center gap-2">
-              <Clock className="w-5 h-5 text-e3-azure" />
-              Available Times
-            </h3>
+            <h3 className="font-semibold text-e3-white">Available Times</h3>
             
             {/* Time Format Toggle */}
             <div className="flex items-center gap-1 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-1">
