@@ -59,11 +59,8 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
     setIsSubmitting(true);
 
     try {
-      // Validate that the email exists in workspace
-      const isValid = await GoogleWorkspaceService.validateWorkspaceEmail(selectedUser.primaryEmail);
-      if (!isValid) {
-        throw new Error('Selected user is not valid or not found in workspace');
-      }
+      // User is already validated by being selected from workspace dropdown
+      // No need to re-validate since they came from Google Workspace API
 
       // Check if user already exists
       const { data: existingMember } = await (supabase as any)
