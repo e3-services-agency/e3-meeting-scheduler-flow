@@ -329,44 +329,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         </div>
       </div>
 
-      {/* Timezone and Time Format Controls */}
-      <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <label htmlFor="timezone" className="text-sm text-e3-white/80 whitespace-nowrap">Timezone:</label>
-          <TimezoneSelector
-            value={appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
-            onChange={(timezone) => onStateChange({ timezone })}
-            className="min-w-[280px]"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="timeFormat" className="text-sm text-e3-white/80 whitespace-nowrap">Time Format:</label>
-          <div className="flex items-center gap-2 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-1">
-            <button
-              onClick={() => onStateChange({ timeFormat: '12h' })}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                appState.timeFormat === '12h' 
-                  ? 'bg-e3-azure text-e3-white' 
-                  : 'text-e3-white/70 hover:text-e3-white'
-              }`}
-            >
-              am/pm
-            </button>
-            <button
-              onClick={() => onStateChange({ timeFormat: '24h' })}
-              className={`px-3 py-1 rounded text-sm transition-colors ${
-                appState.timeFormat === '24h' 
-                  ? 'bg-e3-azure text-e3-white' 
-                  : 'text-e3-white/70 hover:text-e3-white'
-              }`}
-            >
-              24h
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Team Members Section - Back above calendar */}
+      {/* Team Members Section - 2 columns layout */}
       {(selectedMembers.required.length > 0 || selectedMembers.optional.length > 0) && (
         <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-azure/20 mb-6">
           <div className="flex items-center gap-2 mb-3">
@@ -374,7 +337,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             <span className="text-sm font-medium text-e3-azure">Checking availability for:</span>
           </div>
           
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedMembers.required.length > 0 && (
               <div>
                 <div className="text-xs text-emerald-400 font-medium mb-2">Required Members (availability checked)</div>
@@ -503,9 +466,35 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
         {/* Time Slots */}
         <div className="bg-e3-space-blue/50 rounded-lg p-6 border border-e3-white/10">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-e3-azure" />
-            <h3 className="font-semibold text-e3-white">Available Times</h3>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-e3-azure" />
+              <h3 className="font-semibold text-e3-white">Available Times</h3>
+            </div>
+            
+            {/* Time Format Toggle */}
+            <div className="flex items-center gap-1 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-1">
+              <button
+                onClick={() => onStateChange({ timeFormat: '12h' })}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  appState.timeFormat === '12h'
+                    ? 'bg-e3-azure text-e3-white'
+                    : 'text-e3-white/60 hover:text-e3-white'
+                }`}
+              >
+                12h
+              </button>
+              <button
+                onClick={() => onStateChange({ timeFormat: '24h' })}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  appState.timeFormat === '24h'
+                    ? 'bg-e3-azure text-e3-white'
+                    : 'text-e3-white/60 hover:text-e3-white'
+                }`}
+              >
+                24h
+              </button>
+            </div>
           </div>
 
           {!selectedDate ? (
@@ -565,7 +554,15 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                  );
               })}
             </div>
-          )}
+           )}
+           
+           {/* Timezone Selector */}
+           <div className="pt-4 border-t border-e3-white/10 mt-4">
+             <TimezoneSelector
+               value={appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+               onChange={(timezone) => onStateChange({ timezone })}
+             />
+           </div>
         </div>
       </div>
 

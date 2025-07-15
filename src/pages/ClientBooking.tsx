@@ -154,14 +154,16 @@ const ClientBooking: React.FC = () => {
     return (
       <div className="min-h-screen bg-e3-space-blue p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
-          <header className="mb-4 text-center">
-            <img 
-              src={e3Logo} 
-              alt="E3 Logo" 
-              className="h-8 mx-auto mb-2"
-            />
-            <h1 className="text-xl sm:text-2xl font-bold text-e3-emerald mb-1">Schedule a Meeting</h1>
-            <p className="text-e3-white/60 text-xs sm:text-sm mb-3">Follow the steps below to book your session.</p>
+          <header className="mb-4">
+            <div className="flex items-center gap-3 mb-2">
+              <img 
+                src={e3Logo} 
+                alt="E3 Logo" 
+                className="h-6"
+              />
+              <h1 className="text-xl sm:text-2xl font-bold text-e3-emerald">Schedule a Meeting</h1>
+            </div>
+            <p className="text-e3-white/60 text-xs sm:text-sm">Follow the steps below to book your session.</p>
           </header>
           
           <div className="mb-4">
