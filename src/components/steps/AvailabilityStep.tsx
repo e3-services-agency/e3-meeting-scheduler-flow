@@ -5,6 +5,7 @@ import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO, 
 import { useTeamData } from '../../hooks/useTeamData';
 import { supabase } from '../../integrations/supabase/client';
 import { StepProps, TimeSlot } from '../../types/scheduling';
+import { TimezoneSelector } from '../TimezoneSelector';
 
 interface AvailabilityStepProps extends StepProps {}
 
@@ -279,34 +280,22 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       </div>
 
       {/* Timezone and Time Format Controls */}
-      <div className="flex justify-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
         <div className="flex items-center gap-2">
-          <label htmlFor="timezone" className="text-sm text-e3-white/80">Timezone:</label>
-          <select
-            id="timezone"
+          <label htmlFor="timezone" className="text-sm text-e3-white/80 whitespace-nowrap">Timezone:</label>
+          <TimezoneSelector
             value={appState.timezone}
-            onChange={(e) => onStateChange({ timezone: e.target.value })}
-            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-sm text-e3-white focus:border-e3-azure outline-none"
-          >
-            <option value="UTC">UTC</option>
-            <option value="America/New_York">Eastern Time</option>
-            <option value="America/Chicago">Central Time</option>
-            <option value="America/Denver">Mountain Time</option>
-            <option value="America/Los_Angeles">Pacific Time</option>
-            <option value="Europe/London">London</option>
-            <option value="Europe/Paris">Paris</option>
-            <option value="Asia/Tokyo">Tokyo</option>
-            <option value="Asia/Shanghai">Shanghai</option>
-            <option value="Australia/Sydney">Sydney</option>
-          </select>
+            onChange={(timezone) => onStateChange({ timezone })}
+            className="min-w-[280px]"
+          />
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor="timeFormat" className="text-sm text-e3-white/80">Time Format:</label>
+          <label htmlFor="timeFormat" className="text-sm text-e3-white/80 whitespace-nowrap">Time Format:</label>
           <select
             id="timeFormat"
             value={appState.timeFormat}
             onChange={(e) => onStateChange({ timeFormat: e.target.value as '12h' | '24h' })}
-            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-sm text-e3-white focus:border-e3-azure outline-none"
+            className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white focus:border-e3-azure outline-none hover:bg-e3-space-blue/70 transition-colors"
           >
             <option value="12h">12 Hour</option>
             <option value="24h">24 Hour</option>
@@ -418,7 +407,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
               <p>No available times for selected date</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto custom-scrollbar">
               {availableSlots.map((slot, index) => {
                 const startTime = parseISO(slot.start);
                 const isSelected = isTimeSelected(slot);
@@ -428,10 +417,10 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                     key={index}
                     onClick={() => handleTimeSelect(slot)}
                     className={`
-                      p-3 rounded-lg text-sm font-medium transition
+                      p-3 rounded-lg text-sm font-medium transition-all duration-200
                       ${isSelected 
-                        ? 'bg-e3-emerald text-e3-white shadow-lg' 
-                        : 'bg-e3-space-blue border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50'
+                        ? 'bg-e3-emerald text-e3-white shadow-lg scale-105' 
+                        : 'bg-e3-space-blue/80 border border-e3-emerald/30 text-e3-white hover:bg-e3-emerald/10 hover:border-e3-emerald/50 hover:scale-102'
                       }
                     `}
                   >

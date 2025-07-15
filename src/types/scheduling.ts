@@ -19,6 +19,11 @@ export interface AppState {
   timezone: string;
   timeFormat: '12h' | '24h';
   steps: { name: string }[];
+  // Booking customization
+  bookingTitle?: string;
+  bookingDescription?: string;
+  bookingImages?: string[];
+  bookingLinks?: { name: string; url: string }[];
 }
 
 export interface StepProps {
