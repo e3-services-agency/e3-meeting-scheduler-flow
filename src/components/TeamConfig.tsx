@@ -501,9 +501,43 @@ const TeamConfig: React.FC = () => {
                             <p className="text-e3-white/80 mb-2">{team.description}</p>
                           )}
                           
-                          <p className="text-e3-white/60 text-sm">
+                          <p className="text-e3-white/60 text-sm mb-3">
                             Members: {teamMemberCount}
                           </p>
+                          
+                          {/* Booking Link Section */}
+                          <div className="mt-4 p-3 bg-e3-space-blue/50 rounded-md border border-e3-azure/20">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-e3-azure text-sm font-medium">Booking Link</p>
+                              <button
+                                onClick={() => {
+                                  const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                  navigator.clipboard.writeText(bookingUrl);
+                                  toast({
+                                    title: "Link Copied!",
+                                    description: "Booking link copied to clipboard",
+                                  });
+                                }}
+                                className="text-xs text-e3-azure hover:text-e3-white px-2 py-1 bg-e3-azure/10 hover:bg-e3-azure/20 rounded transition"
+                              >
+                                Copy Link
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <code className="flex-1 text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border">
+                                {window.location.origin}/book/{team.name.toLowerCase().replace(/\s+/g, '-')}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                  window.open(bookingUrl, '_blank');
+                                }}
+                                className="text-xs text-e3-emerald hover:text-e3-white px-2 py-1 bg-e3-emerald/10 hover:bg-e3-emerald/20 rounded transition"
+                              >
+                                View
+                              </button>
+                            </div>
+                          </div>
                         </div>
                         
                         <div className="flex gap-2">
