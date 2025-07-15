@@ -1,21 +1,35 @@
-
 import React, { useState } from 'react';
-import { Edit2, Image, Link, Plus, X } from 'lucide-react';
+import { Edit2, Image, Link, Plus, X, Calendar, Clock, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import { StepProps } from '../../types/scheduling';
 import { useTeamData } from '../../hooks/useTeamData';
 import { GoogleCalendarService } from '../../utils/googleCalendarService';
 import { supabase } from '../../integrations/supabase/client';
 import { toast } from 'sonner';
+import { Textarea } from '../ui/textarea';
 
 const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange }) => {
   const [isBooked, setIsBooked] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
+  const [showAssets, setShowAssets] = useState(false);
   const { teamMembers } = useTeamData();
 
   // Local state for editing booking details
-  const [editingTitle, setEditingTitle] = useState(appState.bookingTitle || '');
-  const [editingDescription, setEditingDescription] = useState(appState.bookingDescription || '');
+  const [sessionTitle, setSessionTitle] = useState(() => {
+    if (appState.bookingTitle) return appState.bookingTitle;
+    
+    const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
+    const clientTeamName = appState.clientTeamId; // You might want to get actual team name
+    const date = appState.selectedDate ? new Date(appState.selectedDate).toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }) : '';
+    
+    return `Session with ${requiredTeam.map(m => m.name).join(', ')} – ${date}`;
+  });
+  
+  const [sessionDescription, setSessionDescription] = useState(appState.bookingDescription || '');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newLinkName, setNewLinkName] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
@@ -57,9 +71,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       console.log('Final attendee emails array:', attendeeEmails);
       console.log('Total attendees count:', attendeeEmails.length);
 
-      // Prepare meeting title and description
-      const meetingTitle = appState.bookingTitle || `Meeting with ${requiredMembers.map(m => m.name).join(', ')}`;
-      const meetingDescription = appState.bookingDescription || `Meeting scheduled via team scheduling system`;
+      // Use the current session title and description
+      const meetingTitle = sessionTitle.trim() || `Meeting with ${requiredMembers.map(m => m.name).join(', ')}`;
+      const meetingDescription = sessionDescription.trim() || `Meeting scheduled via team scheduling system`;
 
       // Save meeting to database
       const { data: meeting, error: dbError } = await (supabase as any)
@@ -71,7 +85,8 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
           end_time: endTime.toISOString(),
           organizer_email: requiredMembers[0]?.email || 'admin@e3-services.com',
           attendee_emails: attendeeEmails,
-          status: 'scheduled'
+          status: 'scheduled',
+          client_team_id: appState.clientTeamId
         })
         .select()
         .single();
@@ -156,14 +171,6 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     });
   };
 
-  const saveBookingDetails = () => {
-    onStateChange({
-      bookingTitle: editingTitle.trim() || undefined,
-      bookingDescription: editingDescription.trim() || undefined
-    });
-    setIsEditing(false);
-  };
-
   const addImage = () => {
     if (newImageUrl.trim()) {
       const currentImages = appState.bookingImages || [];
@@ -197,6 +204,16 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
     onStateChange({ 
       bookingLinks: currentLinks.filter((_, i) => i !== index)
     });
+  };
+
+  const handleTitleChange = (value: string) => {
+    setSessionTitle(value);
+    onStateChange({ bookingTitle: value });
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setSessionDescription(value);
+    onStateChange({ bookingDescription: value });
   };
 
   if (!appState.selectedTime) return null;
@@ -240,228 +257,258 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   }
 
   return (
-    <div className="step animate-fade-in text-center" aria-labelledby="step5-heading">
-      <div className="flex items-center justify-center gap-3 mb-6">
-        <h2 id="step5-heading" className="sub-heading">5. Confirm Your Booking</h2>
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="p-2 text-e3-azure hover:text-e3-emerald transition-colors rounded-lg hover:bg-e3-white/10"
-            title="Edit booking details"
-          >
-            <Edit2 className="w-5 h-5" />
-          </button>
-        )}
-      </div>
+    <div className="step animate-fade-in" aria-labelledby="step5-heading">
+      <h2 id="step5-heading" className="sub-heading text-center mb-8">5. Confirm Your Booking</h2>
 
-      <div className="text-left bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10 space-y-6">
-        {/* Booking Title and Description */}
-        {isEditing ? (
-          <div className="space-y-4 p-4 bg-e3-space-blue/50 rounded-lg border border-e3-azure/20">
-            <div>
-              <label className="block text-sm font-medium text-e3-white mb-2">Meeting Title</label>
-              <input
-                type="text"
-                value={editingTitle}
-                onChange={(e) => setEditingTitle(e.target.value)}
-                placeholder={`Meeting with ${requiredTeam.map(m => m.name).join(', ')}`}
-                className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
-              />
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Session Title */}
+        <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+          <label className="block text-sm font-medium text-e3-emerald mb-3">
+            Session Title
+            <span className="text-e3-white/60 text-xs ml-2">Add a clear name for this meeting to help participants recognize it easily</span>
+          </label>
+          <input
+            type="text"
+            value={sessionTitle}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-4 py-3 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none text-lg"
+            placeholder="Enter session title..."
+          />
+        </div>
+
+        {/* Meeting Details - WHEN & WHO */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* WHEN Section */}
+          <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <Clock className="w-5 h-5 text-e3-emerald" />
+              <h3 className="text-lg font-semibold text-e3-emerald">WHEN</h3>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-e3-white mb-2">Description</label>
-              <textarea
-                value={editingDescription}
-                onChange={(e) => setEditingDescription(e.target.value)}
-                placeholder="Add meeting description..."
-                rows={3}
-                className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none resize-none"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={saveBookingDetails}
-                className="px-4 py-2 bg-e3-emerald text-e3-white rounded-lg hover:bg-e3-emerald/80 transition-colors text-sm"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 bg-e3-white/10 text-e3-white rounded-lg hover:bg-e3-white/20 transition-colors text-sm"
-              >
-                Cancel
-              </button>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-e3-azure" />
+                <span className="text-e3-white">{dateString}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-e3-azure" />
+                <span className="text-e3-white">{timeString}</span>
+              </div>
+              <div className="text-e3-white/80 text-sm">
+                Duration: {appState.duration} minutes
+              </div>
             </div>
           </div>
-        ) : (
-          <>
-            {(appState.bookingTitle || appState.bookingDescription) && (
-              <div className="space-y-2">
-                {appState.bookingTitle && (
-                  <div>
-                    <strong className="text-e3-emerald">Title:</strong> {appState.bookingTitle}
+
+          {/* WHO Section */}
+          <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+            <div className="flex items-center gap-3 mb-4">
+              <Users className="w-5 h-5 text-e3-emerald" />
+              <h3 className="text-lg font-semibold text-e3-emerald">WHO</h3>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-medium text-e3-azure mb-1">Required Team</div>
+                <div className="space-y-1">
+                  {requiredTeam.map(m => (
+                    <div key={m.id} className="text-e3-white text-sm">
+                      {m.name} <span className="text-e3-white/60">({m.role})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {optionalTeam.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-e3-azure mb-1">Optional Team</div>
+                  <div className="space-y-1">
+                    {optionalTeam.map(m => (
+                      <div key={m.id} className="text-e3-white text-sm">
+                        {m.name} <span className="text-e3-white/60">({m.role})</span>
+                      </div>
+                    ))}
                   </div>
-                )}
-                {appState.bookingDescription && (
-                  <div>
-                    <strong className="text-e3-emerald">Description:</strong>
-                    <p className="text-e3-white/80 mt-1 whitespace-pre-wrap">{appState.bookingDescription}</p>
+                </div>
+              )}
+              {appState.guestEmails && appState.guestEmails.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-e3-azure mb-1">Guest Invitees</div>
+                  <div className="flex flex-wrap gap-1">
+                    {appState.guestEmails.map(email => (
+                      <span key={email} className="text-xs bg-e3-emerald/20 px-2 py-1 rounded-full text-e3-emerald">
+                        {email}
+                      </span>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Optional Description Section */}
+        <div className="bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
+          <button
+            onClick={() => setShowDescription(!showDescription)}
+            className="w-full p-6 flex items-center justify-between text-left hover:bg-e3-white/5 transition-colors rounded-lg"
+          >
+            <span className="text-e3-emerald font-medium">Add description or context (optional)</span>
+            {showDescription ? (
+              <ChevronUp className="w-5 h-5 text-e3-white/60" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-e3-white/60" />
+            )}
+          </button>
+          
+          {showDescription && (
+            <div className="px-6 pb-6">
+              <Textarea
+                value={sessionDescription}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                placeholder="Add meeting notes, agenda, goals, or any relevant context..."
+                className="min-h-[120px] bg-e3-space-blue/50 border-e3-white/20 focus:border-e3-azure text-e3-white placeholder-e3-white/60"
+              />
+              <div className="text-xs text-e3-white/60 mt-2">
+                You can include links, bullet points, or any information that would help participants prepare.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Assets Section */}
+        {(appState.bookingImages?.length || appState.bookingLinks?.length || showAssets) && (
+          <div className="bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
+            <button
+              onClick={() => setShowAssets(!showAssets)}
+              className="w-full p-6 flex items-center justify-between text-left hover:bg-e3-white/5 transition-colors rounded-lg"
+            >
+              <span className="text-e3-emerald font-medium">Assets</span>
+              {showAssets ? (
+                <ChevronUp className="w-5 h-5 text-e3-white/60" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-e3-white/60" />
+              )}
+            </button>
+            
+            {showAssets && (
+              <div className="px-6 pb-6 space-y-4">
+                {/* Images */}
+                <div>
+                  <div className="text-sm font-medium text-e3-azure mb-3">Images</div>
+                  {appState.bookingImages && appState.bookingImages.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+                      {appState.bookingImages.map((imageUrl, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={imageUrl}
+                            alt={`Asset ${index + 1}`}
+                            className="w-full h-20 object-cover rounded-lg border border-e3-white/20"
+                          />
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={newImageUrl}
+                      onChange={(e) => setNewImageUrl(e.target.value)}
+                      placeholder="Image URL"
+                      className="flex-1 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                    />
+                    <button
+                      onClick={addImage}
+                      disabled={!newImageUrl.trim()}
+                      className="px-4 py-2 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Image className="w-4 h-4" />
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Links */}
+                <div>
+                  <div className="text-sm font-medium text-e3-azure mb-3">Links</div>
+                  {appState.bookingLinks && appState.bookingLinks.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {appState.bookingLinks.map((link, index) => (
+                        <div key={index} className="flex items-center justify-between bg-e3-space-blue/50 p-3 rounded-lg border border-e3-white/10">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-e3-white truncate">{link.name}</div>
+                            <div className="text-sm text-e3-azure hover:text-e3-emerald transition-colors truncate">
+                              <a href={link.url} target="_blank" rel="noopener noreferrer">{link.url}</a>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeLink(index)}
+                            className="text-red-400 hover:text-red-300 transition-colors ml-3 flex-shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={newLinkName}
+                      onChange={(e) => setNewLinkName(e.target.value)}
+                      placeholder="Link name"
+                      className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                    />
+                    <input
+                      type="url"
+                      value={newLinkUrl}
+                      onChange={(e) => setNewLinkUrl(e.target.value)}
+                      placeholder="Link URL"
+                      className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={addLink}
+                    disabled={!newLinkName.trim() || !newLinkUrl.trim()}
+                    className="w-full sm:w-auto px-4 py-2 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center"
+                  >
+                    <Link className="w-4 h-4" />
+                    Add Link
+                  </button>
+                </div>
               </div>
             )}
-          </>
+          </div>
         )}
 
-        {/* Meeting Details */}
-        <div className="space-y-4">
-          <div>
-            <strong className="text-e3-emerald">Duration:</strong> {appState.duration} minutes
-          </div>
-          <div>
-            <strong className="text-e3-emerald">When:</strong> {timeString} on {dateString}
-          </div>
-          <div>
-            <strong className="text-e3-emerald">Required Team:</strong>
-            <ul className="list-disc list-inside ml-4 text-e3-white/80">
-              {requiredTeam.map(m => (
-                <li key={m.id}>{m.name} ({m.role})</li>
-              ))}
-            </ul>
-          </div>
-          {optionalTeam.length > 0 && (
-            <div>
-              <strong className="text-e3-emerald">Optional Team:</strong>
-              <ul className="list-disc list-inside ml-4 text-e3-white/80">
-                {optionalTeam.map(m => (
-                  <li key={m.id}>{m.name} ({m.role})</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {appState.guestEmails && appState.guestEmails.length > 0 && (
-            <div>
-              <strong className="text-e3-emerald">Guest Invitees:</strong>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {appState.guestEmails.map(email => (
-                  <span key={email} className="text-sm bg-e3-emerald/20 px-2 py-1 rounded-full text-e3-emerald">
-                    {email}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {!showAssets && !appState.bookingImages?.length && !appState.bookingLinks?.length && (
+          <button
+            onClick={() => setShowAssets(true)}
+            className="w-full p-4 border-2 border-dashed border-e3-white/20 rounded-lg text-e3-white/60 hover:text-e3-white hover:border-e3-white/40 transition-colors"
+          >
+            + Add images or links (optional)
+          </button>
+        )}
 
-        {/* Images Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <strong className="text-e3-emerald">Images</strong>
-          </div>
-          {appState.bookingImages && appState.bookingImages.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {appState.bookingImages.map((imageUrl, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={imageUrl}
-                    alt={`Booking image ${index + 1}`}
-                    className="w-full h-20 object-cover rounded-lg border border-e3-white/20"
-                  />
-                  <button
-                    onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              placeholder="Image URL"
-              className="flex-1 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
-            />
-            <button
-              onClick={addImage}
-              disabled={!newImageUrl.trim()}
-              className="px-4 py-2 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Image className="w-4 h-4" />
-              Add
-            </button>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex gap-4 pt-6">
+          <button
+            onClick={onBack}
+            className="flex-1 bg-e3-white/10 text-e3-white py-3 px-6 rounded-lg hover:bg-e3-white/20 transition-colors font-medium"
+          >
+            Back
+          </button>
+          <button
+            onClick={confirmBooking}
+            disabled={isBooking}
+            className="flex-2 bg-e3-emerald text-e3-white py-3 px-8 rounded-lg hover:bg-e3-emerald/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isBooking ? 'Booking...' : 'Confirm & Book Meeting'}
+          </button>
         </div>
-
-        {/* Links Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <strong className="text-e3-emerald">Links</strong>
-          </div>
-          {appState.bookingLinks && appState.bookingLinks.length > 0 && (
-            <div className="space-y-2">
-              {appState.bookingLinks.map((link, index) => (
-                <div key={index} className="flex items-center justify-between bg-e3-space-blue/50 p-3 rounded-lg border border-e3-white/10">
-                  <div>
-                    <div className="font-medium text-e3-white">{link.name}</div>
-                    <div className="text-sm text-e3-azure hover:text-e3-emerald transition-colors">
-                      <a href={link.url} target="_blank" rel="noopener noreferrer">{link.url}</a>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => removeLink(index)}
-                    className="text-red-400 hover:text-red-300 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={newLinkName}
-              onChange={(e) => setNewLinkName(e.target.value)}
-              placeholder="Link name"
-              className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
-            />
-            <input
-              type="url"
-              value={newLinkUrl}
-              onChange={(e) => setNewLinkUrl(e.target.value)}
-              placeholder="Link URL"
-              className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-sm text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
-            />
-            <button
-              onClick={addLink}
-              disabled={!newLinkName.trim() || !newLinkUrl.trim()}
-              className="sm:col-span-2 px-4 py-2 bg-e3-azure text-e3-white rounded-lg hover:bg-e3-azure/80 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <Link className="w-4 h-4" />
-              Add Link
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-        <button 
-          onClick={onBack} 
-          className="focusable py-3 px-4 text-e3-white/80 hover:text-e3-white transition border border-e3-white/50 rounded-lg"
-        >
-          Back
-        </button>
-        <button 
-          onClick={confirmBooking} 
-          disabled={isBooking}
-          className="cta focusable flex-grow disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isBooking ? 'Booking Meeting...' : 'Confirm & Book Meeting'}
-        </button>
       </div>
     </div>
   );

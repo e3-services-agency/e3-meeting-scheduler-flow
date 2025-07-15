@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import e3Logo from '../assets/e3-logo.png';
 
 const Auth: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -103,6 +104,11 @@ const Auth: React.FC = () => {
       <div className="max-w-md w-full">
         <div className="bg-e3-space-blue/70 p-8 rounded-lg border border-e3-white/10">
           <div className="text-center mb-8">
+            <img 
+              src={e3Logo} 
+              alt="E3 Logo" 
+              className="h-12 mx-auto mb-4"
+            />
             <div className="w-16 h-16 bg-e3-azure/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Lock className="w-8 h-8 text-e3-azure" />
             </div>

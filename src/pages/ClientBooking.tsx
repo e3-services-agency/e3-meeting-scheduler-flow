@@ -8,6 +8,7 @@ import AvailabilityStep from '../components/steps/AvailabilityStep';
 import InviteStep from '../components/steps/InviteStep';
 import ConfirmationStep from '../components/steps/ConfirmationStep';
 import { supabase } from '../integrations/supabase/client';
+import e3Logo from '../assets/e3-logo.png';
 
 const ClientBooking: React.FC = () => {
   const { clientSlug } = useParams<{ clientSlug: string }>();
@@ -146,6 +147,11 @@ const ClientBooking: React.FC = () => {
     <div className="min-h-screen bg-e3-space-blue p-6">
       <div className="max-w-4xl mx-auto">
         <header className="mb-8 text-center">
+          <img 
+            src={e3Logo} 
+            alt="E3 Logo" 
+            className="h-12 md:h-16 mx-auto mb-4"
+          />
           <h1 className="heading text-e3-emerald mb-2">Schedule a Meeting</h1>
           <p className="text-e3-white/80 mb-4">Book a session with {clientTeam.name} team</p>
           <p className="text-e3-white/60 text-sm">Follow the steps below to book your session.</p>
