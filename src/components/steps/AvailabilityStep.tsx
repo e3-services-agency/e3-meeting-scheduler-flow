@@ -470,7 +470,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
           <div className="mb-6">
             <h3 className="text-e3-white font-medium mb-3 text-sm">Duration</h3>
             <div className="flex gap-2 flex-wrap">
-              {[15, 30, 45, 60, 90, 120].map((duration) => (
+              {[15, 30, 45, 60, 90].map((duration) => (
                 <button
                   key={duration}
                   onClick={() => onStateChange({ duration })}
@@ -480,7 +480,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
                       : 'bg-e3-space-blue/30 text-e3-white/80 hover:bg-e3-emerald/20 hover:text-e3-white border border-e3-white/20'
                   }`}
                 >
-                  {duration === 60 ? '1 hour' : duration === 120 ? '2 hours' : `${duration} min`}
+                  {`${duration} min`}
                 </button>
               ))}
             </div>
