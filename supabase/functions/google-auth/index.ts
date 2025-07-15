@@ -135,7 +135,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, userEmail, eventData, email } = await req.json();
+    const { action, userEmail, eventData, email, userEmails } = await req.json();
     console.log('Processing action:', action);
     const serviceAccountKeyStr = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
     
@@ -322,11 +322,21 @@ serve(async (req) => {
       }
 
       case 'check_availability': {
-        if (!userEmail) {
+        const emailsToCheck = userEmails || (userEmail ? [userEmail] : []);
+        
+        if (!emailsToCheck || emailsToCheck.length === 0) {
           throw new Error('User email required');
         }
 
-        const accessToken = await getAccessToken(serviceAccountKey, userEmail);
+        console.log('Checking availability for emails:', emailsToCheck);
+
+        // Get admin access token for calendar API
+        const adminEmail = Deno.env.get('GOOGLE_ADMIN_EMAIL');
+        if (!adminEmail) {
+          throw new Error('Google admin email not configured');
+        }
+
+        const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
         
         const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
           method: 'POST',
@@ -337,16 +347,19 @@ serve(async (req) => {
           body: JSON.stringify({
             timeMin: eventData.timeMin,
             timeMax: eventData.timeMax,
-            items: [{ id: userEmail }]
+            items: emailsToCheck.map(email => ({ id: email }))
           }),
         });
 
         if (!response.ok) {
           const error = await response.text();
+          console.error('Calendar API error:', error);
           throw new Error(`Calendar API error: ${error}`);
         }
 
         const availability = await response.json();
+        console.log('Calendar API response:', availability);
+        
         return new Response(JSON.stringify({ success: true, availability }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
