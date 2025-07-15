@@ -99,21 +99,28 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
           return (
             <div key={member.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
               <div className="flex items-center gap-3 flex-1">
-                {/* Profile Photo */}
-                {member.google_photo_url ? (
+                {/* Profile Photo with better error handling */}
+                <div className="relative">
                   <img 
-                    src={member.google_photo_url} 
+                    src={member.google_photo_url || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&h=150&fit=crop&crop=face`} 
                     alt={member.name}
-                    className="w-12 h-12 rounded-full border-2 border-e3-azure/30"
+                    className="w-12 h-12 rounded-full border-2 border-e3-azure/30 object-cover"
                     onError={(e) => {
-                      // Fallback to initials if image fails to load
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      // Fallback to placeholder if Google photo fails
+                      const target = e.currentTarget as HTMLImageElement;
+                      if (!target.src.includes('unsplash.com')) {
+                        target.src = `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&h=150&fit=crop&crop=face`;
+                      } else {
+                        // If even placeholder fails, hide image and show initials
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }
                     }}
                   />
-                ) : null}
-                <div className={`w-12 h-12 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold ${member.google_photo_url ? 'hidden' : ''}`}>
-                  {member.name.charAt(0)}
+                  <div className="hidden w-12 h-12 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold border-2 border-e3-azure/30">
+                    {member.name.split(' ').map(n => n.charAt(0)).join('')}
+                  </div>
                 </div>
                 
                 <div className="flex-1">
