@@ -50,7 +50,7 @@ export const GlobalBusinessHoursSection: React.FC<Props> = ({
 }) => {
   const [formData, setFormData] = useState(() => ({
     name: globalHours?.name || 'Default Business Hours',
-    timezone: globalHours?.timezone || 'UTC',
+    timezone: globalHours?.timezone || 'Europe/Bratislava',
     ...Object.fromEntries(
       DAYS.flatMap(day => [
         [`${day.key}_start`, globalHours?.[`${day.key}_start` as keyof BusinessHours] || '09:00'],
