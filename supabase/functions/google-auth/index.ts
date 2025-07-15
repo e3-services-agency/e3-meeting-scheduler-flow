@@ -216,7 +216,8 @@ serve(async (req) => {
           const domain = extractDomainFromEmail(adminEmail);
           console.log('Fetching users for domain:', domain);
           
-          const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users?domain=${domain}&maxResults=500`, {
+          // Request user data with photo information explicitly
+          const response = await fetch(`https://admin.googleapis.com/admin/directory/v1/users?domain=${domain}&maxResults=500&projection=full&viewType=admin_view`, {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
@@ -230,6 +231,19 @@ serve(async (req) => {
           }
 
           const data = await response.json();
+          
+          // Log what we're getting from Google to debug photo URLs
+          if (data.users && data.users.length > 0) {
+            console.log('Sample user data from Google:', JSON.stringify(data.users[0], null, 2));
+            data.users.forEach(user => {
+              if (user.thumbnailPhotoUrl) {
+                console.log(`User ${user.name?.fullName} has photo URL: ${user.thumbnailPhotoUrl}`);
+              } else {
+                console.log(`User ${user.name?.fullName} has NO photo URL`);
+              }
+            });
+          }
+          
           return new Response(JSON.stringify({ 
             success: true, 
             users: data.users || [] 

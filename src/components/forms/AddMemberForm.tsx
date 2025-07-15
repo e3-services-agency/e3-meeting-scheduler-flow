@@ -76,9 +76,7 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
         throw new Error('This team member has already been added');
       }
 
-      // Create team member with Google profile data and fallback photo
-      const photoUrl = selectedUser.thumbnailPhotoUrl || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&h=150&fit=crop&crop=face`;
-      
+      // Create team member with Google profile data - only use actual Google photo
       const { data: memberData, error: memberError } = await (supabase as any)
         .from('team_members')
         .insert({
@@ -87,14 +85,14 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
           role: formData.role,
           is_active: true,
           google_calendar_id: selectedUser.primaryEmail, // Use email as calendar ID for domain delegation
-          google_photo_url: photoUrl,
+          google_photo_url: selectedUser.thumbnailPhotoUrl || null, // Only store real Google photo or null
           google_profile_data: {
             orgUnitPath: selectedUser.orgUnitPath,
             isAdmin: selectedUser.isAdmin,
             isDelegatedAdmin: selectedUser.isDelegatedAdmin,
             lastLoginTime: selectedUser.lastLoginTime,
             creationTime: selectedUser.creationTime,
-            originalThumbnailUrl: selectedUser.thumbnailPhotoUrl || null
+            hasPhotoUrl: !!selectedUser.thumbnailPhotoUrl
           }
         })
         .select()

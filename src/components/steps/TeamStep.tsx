@@ -99,28 +99,23 @@ const TeamStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange
           return (
             <div key={member.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-e3-space-blue/70 rounded-lg border border-e3-white/10">
               <div className="flex items-center gap-3 flex-1">
-                {/* Profile Photo with better error handling */}
-                <div className="relative">
+                {/* Profile Photo - only show if Google photo exists */}
+                {member.google_photo_url ? (
                   <img 
-                    src={member.google_photo_url || `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&h=150&fit=crop&crop=face`} 
+                    src={member.google_photo_url} 
                     alt={member.name}
                     className="w-12 h-12 rounded-full border-2 border-e3-azure/30 object-cover"
                     onError={(e) => {
-                      // Fallback to placeholder if Google photo fails
-                      const target = e.currentTarget as HTMLImageElement;
-                      if (!target.src.includes('unsplash.com')) {
-                        target.src = `https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&h=150&fit=crop&crop=face`;
-                      } else {
-                        // If even placeholder fails, hide image and show initials
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }
+                      console.error('Failed to load Google photo for', member.name, ':', member.google_photo_url);
+                      // Hide image and show initials fallback
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.classList.remove('hidden');
                     }}
                   />
-                  <div className="hidden w-12 h-12 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold border-2 border-e3-azure/30">
-                    {member.name.split(' ').map(n => n.charAt(0)).join('')}
-                  </div>
+                ) : null}
+                <div className={`w-12 h-12 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold border-2 border-e3-azure/30 ${member.google_photo_url ? 'hidden' : ''}`}>
+                  {member.name.split(' ').map(n => n.charAt(0)).join('')}
                 </div>
                 
                 <div className="flex-1">
