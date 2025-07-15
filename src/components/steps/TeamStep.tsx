@@ -197,25 +197,27 @@ const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateCh
                   )}
                 </div>
               </div>
-              <div className="flex items-center space-x-4 mt-3 sm:mt-0">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    onChange={() => toggleMember(member.id, 'required')}
-                    className="form-checkbox h-5 w-5 text-e3-emerald bg-e3-space-blue border-e3-azure rounded focus:ring-e3-emerald"
-                    checked={isRequired}
-                  />
-                  <span className="ml-2 text-sm">Required</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    onChange={() => toggleMember(member.id, 'optional')}
-                    className="form-checkbox h-5 w-5 text-e3-azure bg-e3-space-blue border-e3-azure rounded focus:ring-e3-azure"
-                    checked={isOptional}
-                  />
-                  <span className="ml-2 text-sm">Optional</span>
-                </label>
+              <div className="flex items-center gap-2 mt-3 sm:mt-0">
+                <button
+                  onClick={() => toggleMember(member.id, 'required')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isRequired 
+                      ? 'bg-emerald-500 text-white border-emerald-500' 
+                      : 'bg-e3-space-blue border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                  }`}
+                >
+                  Required
+                </button>
+                <button
+                  onClick={() => toggleMember(member.id, 'optional')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    isOptional 
+                      ? 'bg-blue-500 text-white border-blue-500' 
+                      : 'bg-e3-space-blue border border-blue-500/30 text-blue-400 hover:bg-blue-500/10'
+                  }`}
+                >
+                  Optional
+                </button>
               </div>
             </div>
           );
