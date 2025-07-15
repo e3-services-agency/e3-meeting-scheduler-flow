@@ -367,56 +367,6 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       </div>
 
       {/* Individual Member Chips with Colors */}
-      <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-azure/20 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Info className="w-4 h-4 text-e3-azure" />
-          <span className="text-sm font-medium text-e3-azure">Checking availability for:</span>
-        </div>
-        
-        <div className="space-y-3">
-          {selectedMembers.required.length > 0 && (
-            <div>
-              <div className="text-xs text-emerald-400 font-medium mb-2">Required Members (availability checked)</div>
-              <div className="flex flex-wrap gap-2">
-                {selectedMembers.required.map((member, index) => {
-                  const colors = [
-                    'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-                    'bg-green-500/20 text-green-400 border-green-500/40',
-                    'bg-teal-500/20 text-teal-400 border-teal-500/40',
-                    'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
-                  ];
-                  return (
-                    <div key={member?.id} className={`px-3 py-1 rounded-full text-xs font-medium border ${colors[index % colors.length]}`}>
-                      {member?.name}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          
-          {selectedMembers.optional.length > 0 && (
-            <div>
-              <div className="text-xs text-blue-400 font-medium mb-2">Optional Members (invited but not blocking)</div>
-              <div className="flex flex-wrap gap-2">
-                {selectedMembers.optional.map((member, index) => {
-                  const colors = [
-                    'bg-blue-500/20 text-blue-400 border-blue-500/40',
-                    'bg-indigo-500/20 text-indigo-400 border-indigo-500/40',
-                    'bg-purple-500/20 text-purple-400 border-purple-500/40',
-                    'bg-pink-500/20 text-pink-400 border-pink-500/40'
-                  ];
-                  return (
-                    <div key={member?.id} className={`px-3 py-1 rounded-full text-xs font-medium border ${colors[index % colors.length]}`}>
-                      {member?.name}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
@@ -565,36 +515,64 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
             </div>
           )}
         </div>
+        
+        {/* Compact Team Members Section - Moved below calendar */}
+        {(selectedMembers.required.length > 0 || selectedMembers.optional.length > 0) && (
+          <div className="bg-e3-space-blue/20 rounded-lg p-3 mt-4 border border-e3-azure/10">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="w-3 h-3 text-e3-azure" />
+              <span className="text-xs font-medium text-e3-azure">Checking availability for:</span>
+            </div>
+            
+            {selectedMembers.required.length > 0 && (
+              <div className="mb-2">
+                <div className="text-[10px] text-emerald-400 font-medium mb-1">Required (availability checked)</div>
+                <div className="flex flex-wrap gap-1">
+                  {selectedMembers.required.map((member) => (
+                    <div key={member?.id} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                      {member?.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {selectedMembers.optional.length > 0 && (
+              <div>
+                <div className="text-[10px] text-blue-400 font-medium mb-1">Optional (invited but not blocking)</div>
+                <div className="flex flex-wrap gap-1">
+                  {selectedMembers.optional.map((member) => (
+                    <div key={member?.id} className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/20 text-blue-400 border border-blue-500/40">
+                      {member?.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
 
-      {/* Navigation */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 pt-6">
+      {/* Navigation - Made floating */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col sm:flex-row gap-3 bg-e3-space-blue/95 backdrop-blur-sm border border-e3-white/20 rounded-lg p-3 shadow-lg">
         <button
           onClick={onBack}
-          className="order-2 sm:order-1 py-3 px-6 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40"
+          className="order-2 sm:order-1 py-2 px-4 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40 text-sm"
         >
           Back
         </button>
         <button
           onClick={onNext}
           disabled={!appState.selectedDate || !appState.selectedTime}
-          className="order-1 sm:order-2 cta disabled:opacity-50 disabled:cursor-not-allowed"
+          className="order-1 sm:order-2 cta disabled:opacity-50 disabled:cursor-not-allowed text-sm py-2 px-6"
         >
           Continue
         </button>
       </div>
 
-      {/* Sticky CTA for mobile */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-e3-space-blue/95 backdrop-blur-sm border-t border-e3-white/10 sm:hidden z-50">
-        <button
-          onClick={onNext}
-          disabled={!appState.selectedDate || !appState.selectedTime}
-          className="w-full cta disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Continue
-        </button>
-      </div>
+      {/* Add bottom padding to prevent content from being hidden behind floating buttons */}
+      <div className="h-20"></div>
     </div>
   );
 };

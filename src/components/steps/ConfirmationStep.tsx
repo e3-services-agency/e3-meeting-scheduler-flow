@@ -259,6 +259,10 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
               <span className="text-e3-white sm:block">{userTimezone}</span>
             </div>
             <div className="flex justify-between sm:block">
+              <span className="text-e3-azure font-medium">Booked By:</span>
+              <span className="text-e3-white sm:block">{appState.bookerName || 'Guest'}</span>
+            </div>
+            <div className="flex justify-between sm:block">
               <span className="text-e3-azure font-medium">Contact:</span>
               <span className="text-e3-white sm:block">{appState.bookerEmail}</span>
             </div>
