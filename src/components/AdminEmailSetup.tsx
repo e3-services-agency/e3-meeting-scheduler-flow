@@ -73,8 +73,8 @@ const AdminEmailSetup: React.FC<AdminEmailSetupProps> = ({ onAdminEmailConfigure
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleConfigureAdminEmail}
-            disabled={isConfiguring || !adminEmail}
-            className="cta focusable"
+            disabled={isConfiguring || !adminEmail.trim()}
+            className="cta focusable flex items-center gap-2"
           >
             {isConfiguring ? (
               <>
