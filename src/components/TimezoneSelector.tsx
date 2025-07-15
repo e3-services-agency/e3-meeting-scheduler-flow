@@ -73,19 +73,41 @@ export const TimezoneSelector: React.FC<TimezoneSelectorProps> = ({ value, onCha
     const now = new Date();
     
     return TIMEZONES.map(tz => {
-      const zonedTime = toZonedTime(now, tz.value);
-      const currentTime = format(zonedTime, 'HH:mm');
-      
-      // Calculate offset
-      const offset = format(zonedTime, 'xxx');
-      
-      return {
-        value: tz.value,
-        label: tz.label,
-        region: tz.region,
-        offset,
-        currentTime
-      };
+      try {
+        // Use Intl.DateTimeFormat for more reliable timezone handling
+        const timeFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz.value,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        
+        const offsetFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz.value,
+          timeZoneName: 'longOffset'
+        });
+        
+        const currentTime = timeFormatter.format(now);
+        const offsetParts = offsetFormatter.formatToParts(now);
+        const offset = offsetParts.find(part => part.type === 'timeZoneName')?.value || 'UTC+0';
+        
+        return {
+          value: tz.value,
+          label: tz.label,
+          region: tz.region,
+          offset: offset.replace('GMT', 'UTC'),
+          currentTime
+        };
+      } catch (error) {
+        console.warn(`Invalid timezone: ${tz.value}`, error);
+        return {
+          value: tz.value,
+          label: tz.label,
+          region: tz.region,
+          offset: 'UTC+0',
+          currentTime: '--:--'
+        };
+      }
     });
   }, []);
 
