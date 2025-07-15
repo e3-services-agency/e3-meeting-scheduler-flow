@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 const AdminSettings: React.FC = () => {
   const [hasGoogleCredentials, setHasGoogleCredentials] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'calendar' | 'team' | 'database'>('calendar');
+  const [activeTab, setActiveTab] = useState<'calendar' | 'team' | 'roles' | 'database'>('calendar');
   
   // Team Settings State
   const [teams, setTeams] = useState<any[]>([]);
@@ -19,6 +19,12 @@ const AdminSettings: React.FC = () => {
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamDescription, setNewTeamDescription] = useState('');
   
+  // Roles State
+  const [roles, setRoles] = useState<any[]>([]);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+
   // Database State
   const [dbStats, setDbStats] = useState<any>(null);
   const [recentMeetings, setRecentMeetings] = useState<any[]>([]);
@@ -38,6 +44,7 @@ const AdminSettings: React.FC = () => {
       checkGoogleCredentials(),
       loadTeams(),
       loadMembers(),
+      loadRoles(),
       loadDatabaseStats(),
       loadRecentMeetings()
     ]);
@@ -88,6 +95,21 @@ const AdminSettings: React.FC = () => {
     } catch (err) {
       console.error('Error loading members:', err);
       toast.error('Failed to load team members');
+    }
+  };
+
+  const loadRoles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('member_roles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setRoles(data || []);
+    } catch (err) {
+      console.error('Error loading roles:', err);
+      toast.error('Failed to load roles');
     }
   };
 
@@ -221,6 +243,66 @@ const AdminSettings: React.FC = () => {
     }
   };
 
+  const handleCreateRole = async () => {
+    if (!newRoleName.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from('member_roles')
+        .insert({
+          name: newRoleName.trim(),
+          description: newRoleDescription.trim() || null
+        });
+      
+      if (error) throw error;
+      
+      setNewRoleName('');
+      setNewRoleDescription('');
+      await loadRoles();
+      toast.success('Role created successfully');
+    } catch (err) {
+      console.error('Error creating role:', err);
+      toast.error('Failed to create role');
+    }
+  };
+
+  const handleUpdateRole = async (roleId: string, updates: any) => {
+    try {
+      const { error } = await supabase
+        .from('member_roles')
+        .update(updates)
+        .eq('id', roleId);
+      
+      if (error) throw error;
+      
+      await loadRoles();
+      setEditingRole(null);
+      toast.success('Role updated successfully');
+    } catch (err) {
+      console.error('Error updating role:', err);
+      toast.error('Failed to update role');
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (!confirm('Are you sure you want to delete this role? This action cannot be undone.')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('member_roles')
+        .delete()
+        .eq('id', roleId);
+      
+      if (error) throw error;
+      
+      await loadRoles();
+      toast.success('Role deleted successfully');
+    } catch (err) {
+      console.error('Error deleting role:', err);
+      toast.error('Failed to delete role');
+    }
+  };
+
   const handleSaveCalendarSettings = async () => {
     // In a real implementation, you'd save these to a settings table
     toast.success('Calendar settings saved successfully');
@@ -282,6 +364,17 @@ const AdminSettings: React.FC = () => {
           >
             <Users className="w-4 h-4 mr-2" />
             Team Settings
+          </button>
+          <button
+            onClick={() => setActiveTab('roles')}
+            className={`flex items-center px-4 py-2 rounded-md transition ${
+              activeTab === 'roles' 
+                ? 'bg-e3-azure text-e3-white' 
+                : 'text-e3-white/70 hover:text-e3-white hover:bg-e3-white/5'
+            }`}
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Role Management
           </button>
           <button
             onClick={() => setActiveTab('database')}
@@ -533,6 +626,127 @@ const AdminSettings: React.FC = () => {
                             onClick={() => handleDeleteMember(member.id)}
                             className="p-2 text-red-400 hover:bg-red-400/20 rounded transition"
                             title="Delete member"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Role Management Tab */}
+        {activeTab === 'roles' && (
+          <div className="space-y-6">
+            <h2 className="sub-heading mb-6">Role Management</h2>
+            
+            {/* Create New Role */}
+            <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-e3-emerald" />
+                Create New Role
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-e3-white mb-2">Role Name</label>
+                  <input
+                    type="text"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                    placeholder="Enter role name"
+                    className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-e3-white mb-2">Description (Optional)</label>
+                  <input
+                    type="text"
+                    value={newRoleDescription}
+                    onChange={(e) => setNewRoleDescription(e.target.value)}
+                    placeholder="Enter role description"
+                    className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white placeholder-e3-white/60 focus:border-e3-azure outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleCreateRole}
+                disabled={!newRoleName.trim()}
+                className="px-4 py-2 bg-e3-emerald text-e3-white rounded-lg hover:bg-e3-emerald/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Role
+              </button>
+            </div>
+
+            {/* Roles List */}
+            <div className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-e3-azure" />
+                Available Roles ({roles.length})
+              </h3>
+              {roles.length === 0 ? (
+                <p className="text-e3-white/60">No roles created yet. Create your first role above.</p>
+              ) : (
+                <div className="space-y-3">
+                  {roles.map((role) => (
+                    <div key={role.id} className="bg-e3-space-blue/50 p-4 rounded-lg border border-e3-white/10">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          {editingRole === role.id ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <input
+                                type="text"
+                                defaultValue={role.name}
+                                onBlur={(e) => handleUpdateRole(role.id, { name: e.target.value })}
+                                className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-2 text-e3-white"
+                              />
+                              <input
+                                type="text"
+                                defaultValue={role.description || ''}
+                                onBlur={(e) => handleUpdateRole(role.id, { description: e.target.value || null })}
+                                placeholder="Role description"
+                                className="bg-e3-space-blue border border-e3-white/20 rounded px-3 py-2 text-e3-white"
+                              />
+                            </div>
+                          ) : (
+                            <>
+                              <h4 className="font-bold text-lg mb-1">{role.name}</h4>
+                              {role.description && (
+                                <p className="text-e3-white/70 text-sm">{role.description}</p>
+                              )}
+                              <div className="flex items-center gap-4 text-xs text-e3-white/60 mt-2">
+                                <span>Created: {new Date(role.created_at).toLocaleDateString()}</span>
+                                <span className={`px-2 py-1 rounded ${
+                                  role.is_active ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
+                                }`}>
+                                  {role.is_active ? 'Active' : 'Inactive'}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingRole(editingRole === role.id ? null : role.id)}
+                            className="p-2 text-e3-azure hover:text-e3-white transition"
+                          >
+                            {editingRole === role.id ? <X className="w-4 h-4" /> : <Edit className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleUpdateRole(role.id, { is_active: !role.is_active })}
+                            className={`p-2 transition ${
+                              role.is_active ? 'text-e3-white/60 hover:text-e3-flame' : 'text-e3-emerald hover:text-e3-white'
+                            }`}
+                          >
+                            {role.is_active ? <AlertCircle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRole(role.id)}
+                            className="p-2 text-e3-flame hover:text-e3-white transition"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

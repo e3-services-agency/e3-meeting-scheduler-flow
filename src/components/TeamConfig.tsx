@@ -16,9 +16,30 @@ const TeamConfig: React.FC = () => {
   const [editingMember, setEditingMember] = useState<string | null>(null);
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
+  const [availableRoles, setAvailableRoles] = useState<any[]>([]);
   const { toast } = useToast();
   
   const { teamMembers, clientTeams, loading, error, refetch } = useTeamData();
+
+  // Load available roles
+  React.useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('member_roles')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+        
+        if (error) throw error;
+        setAvailableRoles(data || []);
+      } catch (error) {
+        console.error('Error loading roles:', error);
+      }
+    };
+    
+    loadRoles();
+  }, []);
 
   const handleConnectGoogleCalendar = async (memberId: string) => {
     const member = teamMembers.find(m => m.id === memberId);
@@ -324,13 +345,9 @@ const TeamConfig: React.FC = () => {
                             onChange={(e) => setEditData(prev => ({ ...prev, role: e.target.value }))}
                             className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-e3-white mb-2"
                           >
-                            <option value="Team Member">Team Member</option>
-                            <option value="Team Lead">Team Lead</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Director">Director</option>
-                            <option value="Senior Manager">Senior Manager</option>
-                            <option value="VP">VP</option>
-                            <option value="C-Level">C-Level</option>
+                            {availableRoles.map(role => (
+                              <option key={role.id} value={role.name}>{role.name}</option>
+                            ))}
                           </select>
                         ) : (
                           <p className="text-e3-white/60 mb-2">Role: {member.role}</p>
