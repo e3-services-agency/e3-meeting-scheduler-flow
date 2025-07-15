@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Clock, Users, ChevronLeft, ChevronRight, Info, Filter } from 'lucide-react';
 import { format, addDays, startOfWeek, addWeeks, subWeeks, isSameDay, parseISO, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, eachMinuteOfInterval, isWithinInterval } from 'date-fns';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { useTeamData } from '../../hooks/useTeamData';
 import { supabase } from '../../integrations/supabase/client';
 import { StepProps, TimeSlot } from '../../types/scheduling';
@@ -132,78 +131,62 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const calculateAvailableSlots = () => {
       const duration = appState.duration || 60;
       const slots: TimeSlot[] = [];
-      const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
       
-      console.log('Calculating slots for date:', selectedDate, 'in timezone:', userTimezone);
-      console.log('Busy schedule:', monthlyBusySchedule);
+      console.log('=== SIMPLIFIED SLOT GENERATION ===');
+      console.log('Selected date:', selectedDate);
+      console.log('Busy schedule count:', monthlyBusySchedule.length);
       
-      // Define working hours in the user's timezone (9 AM to 6 PM)
+      // Define working hours (9 AM to 6 PM)
       const startHour = 9;
       const endHour = 18;
       
-      // CRITICAL FIX: Create dates in user's timezone, then convert to UTC for storage
-      const selectedDateStr = selectedDate.toISOString().split('T')[0]; // Get YYYY-MM-DD
+      // Create working hours for the selected date in local time
+      const workingStart = new Date(selectedDate);
+      workingStart.setHours(startHour, 0, 0, 0);
       
-      console.log('=== TIME SLOT GENERATION DEBUG ===');
-      console.log('Selected date object:', selectedDate);
-      console.log('Selected date string:', selectedDateStr);
-      console.log('User timezone:', userTimezone);
+      const workingEnd = new Date(selectedDate);
+      workingEnd.setHours(endHour, 0, 0, 0);
       
-      // Create dates in the user's timezone for the selected date
-      // This creates dates that represent 9:00 AM and 6:00 PM in the user's timezone
-      const startTimeInUserTz = new Date(`${selectedDateStr}T${startHour.toString().padStart(2, '0')}:00:00`);
-      const endTimeInUserTz = new Date(`${selectedDateStr}T${endHour.toString().padStart(2, '0')}:00:00`);
+      console.log('Working hours start:', workingStart.toISOString());
+      console.log('Working hours end:', workingEnd.toISOString());
       
-      // Convert these times from user's timezone to UTC for proper storage
-      const startTimeUTC = fromZonedTime(startTimeInUserTz, userTimezone);
-      const endTimeUTC = fromZonedTime(endTimeInUserTz, userTimezone);
+      // Generate time slots
+      let currentTime = new Date(workingStart);
       
-      console.log('Start time in user TZ (local):', startTimeInUserTz.toISOString());
-      console.log('End time in user TZ (local):', endTimeInUserTz.toISOString());
-      console.log('Start time UTC:', startTimeUTC.toISOString());
-      console.log('End time UTC:', endTimeUTC.toISOString());
-      console.log('Start time formatted:', startTimeUTC.toLocaleString("en-US", {timeZone: userTimezone}));
-      console.log('End time formatted:', endTimeUTC.toLocaleString("en-US", {timeZone: userTimezone}));
-      
-      // Generate slots based on the selected duration, using UTC times
-      const slotInterval = duration;
-      let currentTime = new Date(startTimeUTC);
-      
-      while (currentTime < endTimeUTC) {
+      while (currentTime < workingEnd) {
         const slotEnd = new Date(currentTime.getTime() + duration * 60000);
         
-        console.log('=== SLOT CHECK ===');
-        console.log('Slot start (UTC):', currentTime.toISOString());
-        console.log('Slot start (user TZ):', currentTime.toLocaleString("en-US", {timeZone: userTimezone}));
-        console.log('Slot end (UTC):', slotEnd.toISOString());
-        console.log('Slot end (user TZ):', slotEnd.toLocaleString("en-US", {timeZone: userTimezone}));
+        console.log('Checking slot:', currentTime.toISOString(), 'to', slotEnd.toISOString());
         
-        // Check if this slot conflicts with any busy time (busy times are in UTC)
+        // Check for conflicts with busy times
         const hasConflict = monthlyBusySchedule.some(busySlot => {
           const busyStart = new Date(busySlot.start);
           const busyEnd = new Date(busySlot.end);
           
-          // Check for overlap: slot overlaps if it starts before busy ends and ends after busy starts
+          // Check for overlap
           const overlaps = currentTime < busyEnd && slotEnd > busyStart;
+          
           if (overlaps) {
-            console.log('❌ CONFLICT found with:', busySlot.start, 'to', busySlot.end);
+            console.log('❌ Conflict with busy time:', busySlot.start, 'to', busySlot.end);
           }
+          
           return overlaps;
         });
         
-        if (!hasConflict && slotEnd <= endTimeUTC) {
-          // Store the time slot in ISO format (UTC)
+        // Only add if no conflict and slot fits within working hours
+        if (!hasConflict && slotEnd <= workingEnd) {
           slots.push({
             start: currentTime.toISOString(),
             end: slotEnd.toISOString()
           });
-          console.log('✅ Added available slot:', currentTime.toISOString());
+          console.log('✅ Added slot:', currentTime.toISOString());
         }
         
-        currentTime = new Date(currentTime.getTime() + slotInterval * 60000);
+        // Move to next slot
+        currentTime = new Date(currentTime.getTime() + duration * 60000);
       }
       
-      console.log('Final available slots:', slots);
+      console.log('Generated', slots.length, 'available slots');
       setAvailableSlots(slots);
     };
 
@@ -287,21 +270,11 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   };
 
   const formatTimeSlot = (time: Date) => {
-    const userTimezone = appState.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    console.log('=== FORMAT TIME SLOT ===');
-    console.log('Input time (UTC):', time.toISOString());
-    console.log('User timezone:', userTimezone);
-    
-    // Format the UTC time directly in the user's timezone
+    // Simple local time formatting - no timezone conversion needed
     if (appState.timeFormat === '24h') {
-      const formatted = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTimezone });
-      console.log('Formatted time (24h):', formatted);
-      return formatted;
+      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
-    const formatted = time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: userTimezone });
-    console.log('Formatted time (12h):', formatted);
-    return formatted;
+    return time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   // Check if we have any team members with calendar access
