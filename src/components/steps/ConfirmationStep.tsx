@@ -17,11 +17,24 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   const [sessionTitle, setSessionTitle] = useState(() => {
     if (appState.bookingTitle) return appState.bookingTitle;
     
-    // Smart default: "Client Name x E3 Session"
-    const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
-    const clientName = requiredTeam.length > 0 ? requiredTeam[0]?.clientTeams?.[0]?.name || 'Client' : 'Client';
+    // Get client name from URL or client team
+    const getClientName = () => {
+      const path = window.location.pathname;
+      const slug = path.split('/').pop();
+      if (slug === 'atr') return 'ATR';
+      if (slug === 'puig') return 'PUIG';
+      if (slug === 'sunday-natural') return 'Sunday Natural';
+      
+      // Try to get from team members' client teams
+      const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
+      if (requiredTeam.length > 0 && requiredTeam[0]?.clientTeams?.[0]?.name) {
+        return requiredTeam[0].clientTeams[0].name;
+      }
+      
+      return 'Client';
+    };
     
-    return `${clientName} x E3 Session`;
+    return `${getClientName()} x E3 Session`;
   });
   
   const [sessionDescription, setSessionDescription] = useState(appState.bookingDescription || '');

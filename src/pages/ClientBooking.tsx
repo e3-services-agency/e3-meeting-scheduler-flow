@@ -161,7 +161,7 @@ const ClientBooking: React.FC = () => {
               className="h-10 sm:h-12 md:h-16 mx-auto mb-4"
             />
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-e3-emerald mb-2">Schedule a Meeting</h1>
-            <p className="text-e3-white/80 mb-4 text-sm sm:text-base">Book a session with {clientTeam.name} team</p>
+            <p className="text-e3-white/80 mb-4 text-sm sm:text-base">Book a session with E3 team</p>
             <p className="text-e3-white/60 text-xs sm:text-sm">Follow the steps below to book your session.</p>
           </header>
           

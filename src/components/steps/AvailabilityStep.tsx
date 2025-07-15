@@ -346,20 +346,27 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-azure/20 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Info className="w-4 h-4 text-e3-azure" />
-          <h4 className="text-sm font-medium text-e3-azure">Availability Legend</h4>
+          <h4 className="text-sm font-medium text-e3-azure">Availability Information</h4>
         </div>
-        <div className="flex flex-wrap gap-4 text-xs">
+        <div className="space-y-2 text-xs">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded bg-e3-emerald/50 border border-e3-emerald"></div>
-            <span className="text-e3-white/80">Available for required members</span>
+            <span className="text-e3-white/80">Available for all required members</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded bg-e3-white/20 border border-e3-white/40"></div>
-            <span className="text-e3-white/80">No availability</span>
+            <span className="text-e3-white/80">No availability for required members</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded bg-e3-azure border border-e3-azure"></div>
             <span className="text-e3-white/80">Selected date</span>
+          </div>
+          <div className="bg-e3-azure/10 border border-e3-azure/30 rounded p-2 mt-2">
+            <div className="text-e3-azure text-xs font-medium mb-1">Important:</div>
+            <div className="text-e3-white/70 text-xs">
+              • Only <span className="text-e3-emerald font-medium">required members'</span> availability is checked for scheduling<br/>
+              • <span className="text-e3-azure font-medium">Optional members</span> will be invited but their conflicts won't block the meeting
+            </div>
           </div>
         </div>
       </div>
@@ -505,17 +512,36 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
         </div>
       </div>
 
-      {/* Selected team members info */}
+      {/* Selected team members info with visual differentiation */}
       <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-emerald/20">
         <h4 className="text-sm font-medium text-e3-emerald mb-2">
           Checking availability for:
         </h4>
-        <div className="flex flex-wrap gap-2">
-          {selectedMembers.all.map(member => (
-            <span key={member?.id} className="px-2 py-1 bg-e3-emerald/20 text-e3-emerald text-xs rounded-full">
-              {member?.name}
-            </span>
-          ))}
+        <div className="space-y-3">
+          {selectedMembers.required.length > 0 && (
+            <div>
+              <div className="text-xs text-e3-emerald/80 mb-1 font-medium">Required (availability checked)</div>
+              <div className="flex flex-wrap gap-2">
+                {selectedMembers.required.map(member => (
+                  <span key={member?.id} className="px-2 py-1 bg-e3-emerald/30 text-e3-emerald text-xs rounded-full border border-e3-emerald/50">
+                    {member?.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {selectedMembers.optional.length > 0 && (
+            <div>
+              <div className="text-xs text-e3-azure/80 mb-1 font-medium">Optional (invited but availability not checked)</div>
+              <div className="flex flex-wrap gap-2">
+                {selectedMembers.optional.map(member => (
+                  <span key={member?.id} className="px-2 py-1 bg-e3-azure/20 text-e3-azure text-xs rounded-full border border-e3-azure/40">
+                    {member?.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
