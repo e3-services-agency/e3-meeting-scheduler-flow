@@ -130,6 +130,33 @@ export type Database = {
           },
         ]
       }
+      member_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       oauth_states: {
         Row: {
           created_at: string
@@ -201,6 +228,8 @@ export type Database = {
           created_at: string
           email: string
           google_calendar_id: string | null
+          google_photo_url: string | null
+          google_profile_data: Json | null
           id: string
           is_active: boolean
           name: string
@@ -211,6 +240,8 @@ export type Database = {
           created_at?: string
           email: string
           google_calendar_id?: string | null
+          google_photo_url?: string | null
+          google_profile_data?: Json | null
           id?: string
           is_active?: boolean
           name: string
@@ -221,6 +252,8 @@ export type Database = {
           created_at?: string
           email?: string
           google_calendar_id?: string | null
+          google_photo_url?: string | null
+          google_profile_data?: Json | null
           id?: string
           is_active?: boolean
           name?: string

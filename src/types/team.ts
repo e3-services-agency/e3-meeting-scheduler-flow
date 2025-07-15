@@ -7,6 +7,8 @@ export interface TeamMemberConfig {
   clientTeams: ClientTeam[]; // Changed from single clientTeam to array
   googleCalendarConnected: boolean;
   googleCalendarId?: string;
+  google_photo_url?: string;  // Added Google photo field
+  google_profile_data?: any;  // Added Google profile data field
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

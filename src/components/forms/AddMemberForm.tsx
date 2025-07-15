@@ -17,10 +17,32 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
   const [selectedUser, setSelectedUser] = useState<GoogleWorkspaceUser | null>(null);
   const [formData, setFormData] = useState({
     role: 'Team Member',
-    clientTeamIds: [] as string[]
+    clientTeamIds: [] as string[],
+    addToAllTeams: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<any[]>([]);
   const { toast } = useToast();
+
+  // Load available roles
+  React.useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('member_roles')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+        
+        if (error) throw error;
+        setAvailableRoles(data || []);
+      } catch (error) {
+        console.error('Error loading roles:', error);
+      }
+    };
+    
+    loadRoles();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +84,15 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
           email: selectedUser.primaryEmail,
           role: formData.role,
           is_active: true,
-          google_calendar_id: selectedUser.primaryEmail // Use email as calendar ID for domain delegation
+          google_calendar_id: selectedUser.primaryEmail, // Use email as calendar ID for domain delegation
+          google_photo_url: selectedUser.thumbnailPhotoUrl || null,
+          google_profile_data: {
+            orgUnitPath: selectedUser.orgUnitPath,
+            isAdmin: selectedUser.isAdmin,
+            isDelegatedAdmin: selectedUser.isDelegatedAdmin,
+            lastLoginTime: selectedUser.lastLoginTime,
+            creationTime: selectedUser.creationTime
+          }
         })
         .select()
         .single();
@@ -72,8 +102,10 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
       }
 
       // Add client team relationships
-      if (formData.clientTeamIds.length > 0) {
-        const relationships = formData.clientTeamIds.map(teamId => ({
+      const teamIds = formData.addToAllTeams ? clientTeams.map(t => t.id) : formData.clientTeamIds;
+      
+      if (teamIds.length > 0) {
+        const relationships = teamIds.map(teamId => ({
           team_member_id: memberData.id,
           client_team_id: teamId
         }));
@@ -144,31 +176,50 @@ const AddMemberForm: React.FC<AddMemberFormProps> = ({ onClose, onSuccess, clien
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white focus:border-e3-azure focus:outline-none"
             >
-              <option value="Team Member">Team Member</option>
-              <option value="Team Lead">Team Lead</option>
-              <option value="Manager">Manager</option>
-              <option value="Director">Director</option>
+              {availableRoles.map(role => (
+                <option key={role.id} value={role.name}>{role.name}</option>
+              ))}
             </select>
           </div>
 
           {clientTeams.length > 0 && (
             <div>
               <label className="block text-e3-white/80 text-sm font-medium mb-2">
-                Client Teams (Optional)
+                Client Teams Assignment
               </label>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {clientTeams.map(team => (
-                  <label key={team.id} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.clientTeamIds.includes(team.id)}
-                      onChange={() => handleTeamToggle(team.id)}
-                      className="w-4 h-4 text-e3-azure bg-e3-space-blue/50 border-e3-white/20 rounded focus:ring-e3-azure"
-                    />
-                    <span className="text-e3-white/80 text-sm">{team.name}</span>
-                  </label>
-                ))}
+              
+              {/* Add to All Teams Checkbox */}
+              <div className="mb-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.addToAllTeams}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      addToAllTeams: e.target.checked,
+                      clientTeamIds: e.target.checked ? [] : prev.clientTeamIds
+                    }))}
+                    className="w-4 h-4 text-e3-emerald bg-e3-space-blue/50 border-e3-white/20 rounded focus:ring-e3-emerald"
+                  />
+                  <span className="text-e3-emerald text-sm font-medium">Add to all client teams</span>
+                </label>
               </div>
+              
+              {!formData.addToAllTeams && (
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {clientTeams.map(team => (
+                    <label key={team.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.clientTeamIds.includes(team.id)}
+                        onChange={() => handleTeamToggle(team.id)}
+                        className="w-4 h-4 text-e3-azure bg-e3-space-blue/50 border-e3-white/20 rounded focus:ring-e3-azure"
+                      />
+                      <span className="text-e3-white/80 text-sm">{team.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

@@ -12,6 +12,10 @@ export interface GoogleWorkspaceUser {
   thumbnailPhotoUrl?: string;
   orgUnitPath: string;
   suspended: boolean;
+  isAdmin?: boolean;
+  isDelegatedAdmin?: boolean;
+  lastLoginTime?: string;
+  creationTime?: string;
 }
 
 export class GoogleWorkspaceService {

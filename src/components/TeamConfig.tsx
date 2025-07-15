@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog } from 'lucide-react';
+import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog, Save, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTeamData } from '../hooks/useTeamData';
 import { GoogleCalendarService } from '../utils/googleCalendarService';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '../integrations/supabase/client';
 import AddMemberForm from './forms/AddMemberForm';
 import AddTeamForm from './forms/AddTeamForm';
 
@@ -12,6 +13,9 @@ const TeamConfig: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'members' | 'teams'>('members');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddTeam, setShowAddTeam] = useState(false);
+  const [editingMember, setEditingMember] = useState<string | null>(null);
+  const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>(null);
   const { toast } = useToast();
   
   const { teamMembers, clientTeams, loading, error, refetch } = useTeamData();
@@ -59,6 +63,128 @@ const TeamConfig: React.FC = () => {
       title: "Success",
       description: "Client team created successfully",
     });
+  };
+
+  const handleEditMember = (member: any) => {
+    setEditingMember(member.id);
+    setEditData({
+      name: member.name,
+      role: member.role,
+      is_active: member.isActive
+    });
+  };
+
+  const handleSaveMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update(editData)
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      setEditingMember(null);
+      setEditData(null);
+      refetch();
+      toast({
+        title: "Success",
+        description: "Team member updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update team member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteMember = async (memberId: string, memberName: string) => {
+    if (!confirm(`Are you sure you want to delete ${memberName}? This action cannot be undone.`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+
+      refetch();
+      toast({
+        title: "Success",
+        description: "Team member deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete team member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditTeam = (team: any) => {
+    setEditingTeam(team.id);
+    setEditData({
+      name: team.name,
+      description: team.description,
+      is_active: team.isActive
+    });
+  };
+
+  const handleSaveTeam = async (teamId: string) => {
+    try {
+      const { error } = await supabase
+        .from('client_teams')
+        .update(editData)
+        .eq('id', teamId);
+
+      if (error) throw error;
+
+      setEditingTeam(null);
+      setEditData(null);
+      refetch();
+      toast({
+        title: "Success",
+        description: "Client team updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating team:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update client team",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string, teamName: string) => {
+    if (!confirm(`Are you sure you want to delete ${teamName}? This action cannot be undone.`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('client_teams')
+        .delete()
+        .eq('id', teamId);
+
+      if (error) throw error;
+
+      refetch();
+      toast({
+        title: "Success",
+        description: "Client team deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete client team",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -159,15 +285,56 @@ const TeamConfig: React.FC = () => {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-lg">{member.name}</h3>
+                          {/* Profile Photo */}
+                          {member.google_photo_url ? (
+                            <img 
+                              src={member.google_photo_url} 
+                              alt={member.name}
+                              className="w-10 h-10 rounded-full border-2 border-e3-azure/30"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-e3-azure/20 flex items-center justify-center text-e3-azure font-bold">
+                              {member.name.charAt(0)}
+                            </div>
+                          )}
+                          
+                          {editingMember === member.id ? (
+                            <input
+                              type="text"
+                              value={editData?.name || ''}
+                              onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                              className="flex-1 bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-e3-white"
+                            />
+                          ) : (
+                            <h3 className="font-bold text-lg">{member.name}</h3>
+                          )}
+                          
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             member.isActive ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
                           }`}>
                             {member.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </div>
+                        
                         <p className="text-e3-white/80 mb-1">{member.email}</p>
-                        <p className="text-e3-white/60 mb-2">Role: {member.role}</p>
+                        
+                        {editingMember === member.id ? (
+                          <select
+                            value={editData?.role || ''}
+                            onChange={(e) => setEditData(prev => ({ ...prev, role: e.target.value }))}
+                            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-e3-white mb-2"
+                          >
+                            <option value="Team Member">Team Member</option>
+                            <option value="Team Lead">Team Lead</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Director">Director</option>
+                            <option value="Senior Manager">Senior Manager</option>
+                            <option value="VP">VP</option>
+                            <option value="C-Level">C-Level</option>
+                          </select>
+                        ) : (
+                          <p className="text-e3-white/60 mb-2">Role: {member.role}</p>
+                        )}
                         
                         {/* Client Teams */}
                         <div className="mb-4">
@@ -205,12 +372,40 @@ const TeamConfig: React.FC = () => {
                       </div>
                       
                       <div className="flex gap-2">
-                        <button className="p-2 text-e3-azure hover:text-e3-white transition">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-e3-flame hover:text-e3-white transition">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {editingMember === member.id ? (
+                          <>
+                            <button 
+                              onClick={() => handleSaveMember(member.id)}
+                              className="p-2 text-e3-emerald hover:text-e3-white transition"
+                            >
+                              <Save className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEditingMember(null);
+                                setEditData(null);
+                              }}
+                              className="p-2 text-e3-white/60 hover:text-e3-white transition"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => handleEditMember(member)}
+                              className="p-2 text-e3-azure hover:text-e3-white transition"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteMember(member.id, member.name)}
+                              className="p-2 text-e3-flame hover:text-e3-white transition"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -249,28 +444,78 @@ const TeamConfig: React.FC = () => {
                   return (
                     <div key={team.id} className="bg-e3-space-blue/70 p-6 rounded-lg border border-e3-white/10">
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-bold text-lg">{team.name}</h3>
+                            {editingTeam === team.id ? (
+                              <input
+                                type="text"
+                                value={editData?.name || ''}
+                                onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                                className="flex-1 bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-1 text-e3-white"
+                              />
+                            ) : (
+                              <h3 className="font-bold text-lg">{team.name}</h3>
+                            )}
+                            
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               team.isActive ? 'bg-e3-emerald/20 text-e3-emerald' : 'bg-e3-white/20 text-e3-white/60'
                             }`}>
                               {team.isActive ? 'Active' : 'Inactive'}
                             </span>
                           </div>
-                          <p className="text-e3-white/80 mb-2">{team.description}</p>
+                          
+                          {editingTeam === team.id ? (
+                            <textarea
+                              value={editData?.description || ''}
+                              onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                              placeholder="Team description"
+                              className="w-full bg-e3-space-blue/50 border border-e3-white/20 rounded px-3 py-2 text-e3-white mb-2"
+                              rows={2}
+                            />
+                          ) : (
+                            <p className="text-e3-white/80 mb-2">{team.description}</p>
+                          )}
+                          
                           <p className="text-e3-white/60 text-sm">
                             Members: {teamMemberCount}
                           </p>
                         </div>
                         
                         <div className="flex gap-2">
-                          <button className="p-2 text-e3-azure hover:text-e3-white transition">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 text-e3-flame hover:text-e3-white transition">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {editingTeam === team.id ? (
+                            <>
+                              <button 
+                                onClick={() => handleSaveTeam(team.id)}
+                                className="p-2 text-e3-emerald hover:text-e3-white transition"
+                              >
+                                <Save className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  setEditingTeam(null);
+                                  setEditData(null);
+                                }}
+                                className="p-2 text-e3-white/60 hover:text-e3-white transition"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button 
+                                onClick={() => handleEditTeam(team)}
+                                className="p-2 text-e3-azure hover:text-e3-white transition"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTeam(team.id, team.name)}
+                                className="p-2 text-e3-flame hover:text-e3-white transition"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
