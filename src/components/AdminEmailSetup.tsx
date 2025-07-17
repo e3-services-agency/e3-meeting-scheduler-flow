@@ -74,11 +74,7 @@ const AdminEmailSetup: React.FC<AdminEmailSetupProps> = ({ onAdminEmailConfigure
           <Button
             onClick={handleConfigureAdminEmail}
             disabled={isConfiguring || !adminEmail.trim()}
-            className={`cta focusable flex items-center gap-2 ${
-              (isConfiguring || !adminEmail.trim()) 
-                ? 'opacity-50 cursor-not-allowed bg-gray-500 text-gray-300 hover:bg-gray-500 hover:text-gray-300' 
-                : ''
-            }`}
+            className="text-white font-medium uppercase tracking-wider bg-[#0DCC96] hover:bg-transparent hover:border-[#0DCC96] hover:text-[#0DCC96] disabled:bg-gray-500 disabled:text-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-500 disabled:hover:text-gray-300 border-2 border-transparent transition-all duration-300 px-5 py-3 rounded-lg flex items-center gap-2"
           >
             {isConfiguring ? (
               <>
