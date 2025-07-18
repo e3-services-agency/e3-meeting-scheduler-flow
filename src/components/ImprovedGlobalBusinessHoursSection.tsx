@@ -201,19 +201,24 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
     <div className="bg-e3-space-blue/30 rounded-lg p-4 border border-e3-white/10">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-lg font-semibold text-e3-white">{groupLabel}</h4>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={days.every(day => daySchedules[day.key]?.isOpen)}
-              onCheckedChange={(checked) => {
-                days.forEach(day => handleToggleDay(day.key, checked));
-              }}
-            />
-            <span className="text-sm text-e3-white/80">
-              {days.every(day => daySchedules[day.key]?.isOpen) ? 'Open' : 'Closed'}
-            </span>
-          </div>
-        </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={days.every(day => daySchedules[day.key]?.isOpen)}
+                  onCheckedChange={(checked) => {
+                    days.forEach(day => handleToggleDay(day.key, checked));
+                  }}
+                  className="data-[state=checked]:bg-bh-open data-[state=unchecked]:bg-bh-closed"
+                />
+                <span className={`text-sm font-medium ${
+                  days.every(day => daySchedules[day.key]?.isOpen) 
+                    ? 'text-bh-open' 
+                    : 'text-bh-closed'
+                }`}>
+                  {days.every(day => daySchedules[day.key]?.isOpen) ? 'Open' : 'Closed'}
+                </span>
+              </div>
+            </div>
       </div>
 
       {days.some(day => daySchedules[day.key]?.isOpen) && (
@@ -224,23 +229,25 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                 <input
                   type="time"
                   value={slot.start}
+                  step="900"
                   onChange={(e) => {
                     days.forEach(day => {
                       handleUpdateTimeSlot(day.key, slotIndex, 'start', e.target.value);
                     });
                   }}
-                  className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald outline-none"
+                  className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
                 />
                 <span className="text-e3-white/60">to</span>
                 <input
                   type="time"
                   value={slot.end}
+                  step="900"
                   onChange={(e) => {
                     days.forEach(day => {
                       handleUpdateTimeSlot(day.key, slotIndex, 'end', e.target.value);
                     });
                   }}
-                  className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald outline-none"
+                  className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
                 />
               </div>
 
@@ -285,8 +292,11 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                 <Switch
                   checked={schedule.isOpen}
                   onCheckedChange={(checked) => handleToggleDay(day.key, checked)}
+                  className="data-[state=checked]:bg-bh-open data-[state=unchecked]:bg-bh-closed"
                 />
-                <span className="text-sm text-e3-white/80">
+                <span className={`text-sm font-medium ${
+                  schedule.isOpen ? 'text-bh-open' : 'text-bh-closed'
+                }`}>
                   {schedule.isOpen ? 'Open' : 'Closed'}
                 </span>
               </div>
@@ -300,15 +310,17 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                       <input
                         type="time"
                         value={slot.start}
+                        step="900"
                         onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'start', e.target.value)}
-                        className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald outline-none"
+                        className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
                       />
                       <span className="text-e3-white/60">to</span>
                       <input
                         type="time"
                         value={slot.end}
+                        step="900"
                         onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'end', e.target.value)}
-                        className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald outline-none"
+                        className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
                       />
                     </div>
 
@@ -385,16 +397,27 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
 
             <div>
               <label className="block text-sm font-medium text-e3-white mb-2">Time Format</label>
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={use24HourFormat}
-                    onCheckedChange={setUse24HourFormat}
-                  />
-                  <span className="text-sm text-e3-white/80">
-                    {use24HourFormat ? '24-hour' : '12-hour'}
-                  </span>
-                </div>
+              <div className="flex items-center gap-1 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-1">
+                <button
+                  onClick={() => setUse24HourFormat(false)}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    !use24HourFormat
+                      ? 'bg-e3-azure text-e3-white'
+                      : 'text-e3-white/60 hover:text-e3-white'
+                  }`}
+                >
+                  12h
+                </button>
+                <button
+                  onClick={() => setUse24HourFormat(true)}
+                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                    use24HourFormat
+                      ? 'bg-e3-azure text-e3-white'
+                      : 'text-e3-white/60 hover:text-e3-white'
+                  }`}
+                >
+                  24h
+                </button>
               </div>
             </div>
           </div>

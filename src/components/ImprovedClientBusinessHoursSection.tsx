@@ -234,11 +234,18 @@ const ImprovedClientTeamHoursCard: React.FC<{
     <div className="bg-e3-space-blue/50 rounded-lg p-4 border border-e3-white/10">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-e3-white">{team.name}</h3>
+          <h3 className="text-lg font-semibold text-e3-white flex items-center gap-2">
+            {team.name}
+            {!hasCustomHours && (
+              <span className="px-2 py-1 text-xs bg-e3-emerald/20 text-e3-emerald rounded-full border border-e3-emerald/30">
+                Global Hours
+              </span>
+            )}
+          </h3>
           <p className="text-e3-white/60 text-sm">
             {hasCustomHours 
-              ? `Custom hours for ${team.name}` 
-              : 'This client is using Global Business Hours'
+              ? `Custom hours configured for ${team.name}` 
+              : 'Inheriting from Global Business Hours configuration'
             }
           </p>
         </div>
@@ -301,8 +308,11 @@ const ImprovedClientTeamHoursCard: React.FC<{
                       <Switch
                         checked={schedule.isOpen}
                         onCheckedChange={(checked) => handleToggleDay(day.key, checked)}
+                        className="data-[state=checked]:bg-bh-open data-[state=unchecked]:bg-bh-closed"
                       />
-                      <span className="text-xs text-e3-white/80">
+                      <span className={`text-xs font-medium ${
+                        schedule.isOpen ? 'text-bh-open' : 'text-bh-closed'
+                      }`}>
                         {schedule.isOpen ? 'Open' : 'Closed'}
                       </span>
                     </div>
@@ -315,15 +325,17 @@ const ImprovedClientTeamHoursCard: React.FC<{
                           <input
                             type="time"
                             value={slot.start}
+                            step="900"
                             onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'start', e.target.value)}
-                            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-2 py-1 text-e3-white text-sm focus:border-e3-emerald outline-none"
+                            className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded px-2 py-1 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
                           />
                           <span className="text-e3-white/60 text-sm">to</span>
                           <input
                             type="time"
                             value={slot.end}
+                            step="900"
                             onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'end', e.target.value)}
-                            className="bg-e3-space-blue/50 border border-e3-white/20 rounded px-2 py-1 text-e3-white text-sm focus:border-e3-emerald outline-none"
+                            className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded px-2 py-1 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
                           />
                           
                           <button
@@ -379,13 +391,25 @@ const ImprovedClientTeamHoursCard: React.FC<{
           {DAYS.map(day => {
             const startTime = (hasCustomHours ? teamHours : globalHours)?.[`${day.key}_start` as keyof (ClientTeamBusinessHours | BusinessHours)] as string;
             const endTime = (hasCustomHours ? teamHours : globalHours)?.[`${day.key}_end` as keyof (ClientTeamBusinessHours | BusinessHours)] as string;
+            const isOpen = !!(startTime && endTime);
             
             return (
-              <div key={day.key} className={`text-center p-2 rounded ${hasCustomHours ? 'bg-e3-emerald/10 border border-e3-emerald/30' : 'bg-e3-space-blue/30'}`}>
-                <div className="text-xs text-e3-white/60">{day.label.slice(0, 3)}</div>
-                <div className="text-xs text-e3-white">
+              <div key={day.key} className={`text-center p-2 rounded border transition-colors ${
+                hasCustomHours 
+                  ? 'bg-e3-emerald/10 border-e3-emerald/30' 
+                  : 'bg-e3-azure/10 border-e3-azure/30'
+              }`}>
+                <div className="text-xs text-e3-white/60 mb-1">{day.label.slice(0, 3)}</div>
+                <div className={`text-xs font-medium ${
+                  isOpen 
+                    ? (hasCustomHours ? 'text-e3-emerald' : 'text-e3-azure') 
+                    : 'text-e3-white/50'
+                }`}>
                   {startTime && endTime ? `${startTime}-${endTime}` : 'Closed'}
                 </div>
+                {!hasCustomHours && (
+                  <div className="text-xs text-e3-azure/70 mt-1">Global</div>
+                )}
               </div>
             );
           })}

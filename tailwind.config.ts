@@ -26,11 +26,14 @@ export default {
 				'e3-azure': '#0077E3',
 				'e3-flame': '#E35010',
 				'e3-straw': '#E3DA76',
+				'e3-ocean': '#0077E3',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				'bh-open': 'hsl(var(--bh-open))',
+				'bh-closed': 'hsl(var(--bh-closed))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'

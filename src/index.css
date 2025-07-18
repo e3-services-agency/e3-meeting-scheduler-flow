@@ -40,6 +40,10 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
+    /* Business hours specific colors */
+    --bh-open: 174 100% 44%;  /* Emerald green #0DCC96 */
+    --bh-closed: 17 83% 47%;  /* Flame #E35010 */
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
