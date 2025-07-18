@@ -231,6 +231,7 @@ export type Database = {
           description: string | null
           end_time: string
           google_event_id: string | null
+          google_meet_link: string | null
           id: string
           organizer_email: string
           start_time: string
@@ -245,6 +246,7 @@ export type Database = {
           description?: string | null
           end_time: string
           google_event_id?: string | null
+          google_meet_link?: string | null
           id?: string
           organizer_email: string
           start_time: string
@@ -259,6 +261,7 @@ export type Database = {
           description?: string | null
           end_time?: string
           google_event_id?: string | null
+          google_meet_link?: string | null
           id?: string
           organizer_email?: string
           start_time?: string

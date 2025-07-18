@@ -11,6 +11,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   const [isBooked, setIsBooked] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [meetingData, setMeetingData] = useState<any>(null);
   const { teamMembers } = useTeamData();
 
   // Local state for editing booking details
@@ -110,6 +111,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
 
       // Create calendar event description
       let calendarDescription = meetingDescription + '\n\n';
+      calendarDescription += `🎥 Google Meet: Link included in this calendar event\n\n`;
       calendarDescription += `Booked by: ${appState.bookerName || 'Guest'} (${appState.bookerEmail || 'N/A'})\n`;
       calendarDescription += `Required attendees: ${requiredMembers.map(m => m.name).join(', ')}\n`;
       if (optionalMembers.length > 0) {
@@ -135,14 +137,30 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       const organizerEmail = requiredMembers[0]?.email || 'admin@e3-services.com';
       const calendarResult = await GoogleCalendarService.createEvent(organizerEmail, eventData);
 
-      // Update meeting with Google event ID
+      console.log('Calendar result:', calendarResult);
+
+      // Update meeting with Google event ID and Meet link
+      let finalMeetingData = meeting;
       if (calendarResult?.event?.id) {
-        await (supabase as any)
+        const meetLink = calendarResult.event.conferenceData?.entryPoints?.find(
+          (entry: any) => entry.entryPointType === 'video'
+        )?.uri;
+
+        const { data: updatedMeeting } = await (supabase as any)
           .from('meetings')
-          .update({ google_event_id: calendarResult.event.id })
-          .eq('id', meeting.id);
+          .update({ 
+            google_event_id: calendarResult.event.id,
+            google_meet_link: meetLink || null
+          })
+          .eq('id', meeting.id)
+          .select()
+          .single();
+
+        finalMeetingData = updatedMeeting || meeting;
+        console.log('Google Meet link saved:', meetLink);
       }
 
+      setMeetingData(finalMeetingData);
       toast.success('Meeting booked successfully! Calendar invites have been sent.');
       setIsBooked(true);
     } catch (error) {
@@ -229,6 +247,29 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
           Meeting Scheduled Successfully!
         </h2>
         <p className="text-e3-white/80 mb-6">Your meeting has been scheduled and calendar invites have been sent to all attendees.</p>
+        
+        {/* Google Meet Link */}
+        {meetingData?.google_meet_link && (
+          <div className="bg-e3-emerald/10 border border-e3-emerald/30 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <svg className="w-5 h-5 text-e3-emerald" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 12.5l-6.5-6.5v4h-8.5c-1.1 0-2 .9-2 2s.9 2 2 2h8.5v4L24 12.5zM7 16H3c-1.1 0-2-.9-2-2V10c0-1.1.9-2 2-2h4v8z"/>
+              </svg>
+              <span className="text-e3-emerald font-semibold">Google Meet Link</span>
+            </div>
+            <a
+              href={meetingData.google_meet_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-e3-emerald text-e3-space-blue px-4 py-2 rounded-lg hover:bg-e3-emerald/90 transition-colors font-medium"
+            >
+              Join Meeting
+            </a>
+            <p className="text-e3-white/70 text-xs mt-2">
+              This link has been included in your calendar invitation
+            </p>
+          </div>
+        )}
         
         {/* Improved Success Summary with Better Layout */}
         <div className="bg-e3-space-blue/30 rounded-lg p-6 mb-6 text-left border border-e3-emerald/20">

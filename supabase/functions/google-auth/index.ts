@@ -358,12 +358,21 @@ serve(async (req) => {
         
         const eventPayload = {
           ...eventData,
-          sendNotifications: true
+          sendNotifications: true,
+          // Add Google Meet conference data
+          conferenceData: {
+            createRequest: {
+              requestId: `meet-${Date.now()}`, // Unique request ID
+              conferenceSolutionKey: {
+                type: 'hangoutsMeet'
+              }
+            }
+          }
         };
 
         console.log('Final event payload being sent to Google Calendar:', JSON.stringify(eventPayload, null, 2));
         
-        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${userEmail}/events?sendUpdates=all`, {
+        const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${userEmail}/events?sendUpdates=all&conferenceDataVersion=1`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
