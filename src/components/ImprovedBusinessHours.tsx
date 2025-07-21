@@ -57,6 +57,7 @@ const ImprovedBusinessHours: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [repeatType, setRepeatType] = useState('weekly');
+  const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>('12h');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -332,11 +333,35 @@ const ImprovedBusinessHours: React.FC = () => {
             })}
           </div>
 
-          <div className="pt-4">
+          <div className="pt-4 space-y-4">
             <TimezoneSelector
               value={businessHours.timezone}
               onChange={(timezone) => setBusinessHours({ ...businessHours, timezone })}
             />
+            
+            <div>
+              <Label className="text-e3-white">Time Format</Label>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={timeFormat === '12h' ? "default" : "outline"}
+                  onClick={() => setTimeFormat('12h')}
+                  className={timeFormat === '12h' ? "bg-e3-emerald text-e3-space-blue" : "border-e3-white/20 text-e3-white"}
+                >
+                  12h
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={timeFormat === '24h' ? "default" : "outline"}
+                  onClick={() => setTimeFormat('24h')}
+                  className={timeFormat === '24h' ? "bg-e3-emerald text-e3-space-blue" : "border-e3-white/20 text-e3-white"}
+                >
+                  24h
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end pt-4">

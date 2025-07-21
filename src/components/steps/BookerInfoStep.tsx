@@ -3,23 +3,17 @@ import { User, Mail } from 'lucide-react';
 import { StepProps } from '../../types/scheduling';
 
 const BookerInfoStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChange }) => {
-  const [name, setName] = useState(appState.bookerName || '');
   const [email, setEmail] = useState(appState.bookerEmail || '');
-  const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string }>({});
 
   useEffect(() => {
     onStateChange({
-      bookerName: name,
       bookerEmail: email
     });
-  }, [name, email, onStateChange]);
+  }, [email, onStateChange]);
 
   const validateForm = () => {
-    const newErrors: { name?: string; email?: string } = {};
-    
-    if (!name.trim()) {
-      newErrors.name = 'Name is required';
-    }
+    const newErrors: { email?: string } = {};
     
     if (!email.trim()) {
       newErrors.email = 'Email is required';
@@ -52,30 +46,6 @@ const BookerInfoStep: React.FC<StepProps> = ({ appState, onNext, onBack, onState
       </div>
       
       <div className="space-y-6">
-        <div>
-          <label htmlFor="booker-name" className="block text-sm font-medium text-e3-white mb-2">
-            Full Name *
-          </label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-e3-white/60" />
-            <input
-              id="booker-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={`w-full pl-10 pr-4 py-3 bg-e3-space-blue/50 border rounded-lg text-e3-white placeholder-e3-white/60 focus:outline-none focus:ring-2 focus:ring-e3-azure transition ${
-                errors.name 
-                  ? 'border-red-400 focus:ring-red-400' 
-                  : 'border-e3-white/20 focus:border-e3-azure'
-              }`}
-              placeholder="Enter your full name"
-            />
-          </div>
-          {errors.name && (
-            <p className="text-red-400 text-sm mt-1">{errors.name}</p>
-          )}
-        </div>
-
         <div>
           <label htmlFor="booker-email" className="block text-sm font-medium text-e3-white mb-2">
             Email Address *
@@ -115,7 +85,7 @@ const BookerInfoStep: React.FC<StepProps> = ({ appState, onNext, onBack, onState
           onClick={handleNext}
           className="order-1 sm:order-2 cta"
         >
-          Add Guests (Optional)
+          Next: Add Guests
         </button>
       </div>
 
@@ -125,7 +95,7 @@ const BookerInfoStep: React.FC<StepProps> = ({ appState, onNext, onBack, onState
           onClick={handleNext}
           className="w-full cta"
         >
-          Add Guests (Optional)
+          Next: Add Guests
         </button>
       </div>
     </div>

@@ -41,8 +41,8 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
 
   return (
     <div className="step animate-fade-in" aria-labelledby="step5-heading">
-      <h2 id="step5-heading" className="text-2xl font-bold text-e3-white text-center mb-2">5. Invite Guests (Optional)</h2>
-      <p className="text-e3-white/70 mb-6 text-center">Add email addresses for anyone else you'd like to invite.</p>
+      <h2 id="step5-heading" className="text-2xl font-bold text-e3-white text-center mb-2">Invite Guests (Optional)</h2>
+      <p className="text-e3-white/70 mb-6 text-center">Add email addresses for anyone else you'd like to invite, or click "Next" to proceed without guests.</p>
       
       <div className="flex flex-wrap gap-2 mb-4">
         {localGuestEmails.map(email => (
@@ -78,7 +78,7 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
           onClick={onNext} 
           className="order-1 sm:order-2 cta"
         >
-          Review Booking
+          Next: Review Booking
         </button>
       </div>
 
@@ -88,7 +88,7 @@ const InviteStep: React.FC<StepProps> = ({ appState, onNext, onBack, onStateChan
           onClick={onNext} 
           className="w-full cta"
         >
-          Review Booking
+          Next: Review Booking
         </button>
       </div>
     </div>

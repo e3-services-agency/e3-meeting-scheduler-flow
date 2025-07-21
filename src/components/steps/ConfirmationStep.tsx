@@ -110,12 +110,14 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       }
 
       // Create calendar event description
-      let calendarDescription = meetingDescription + '\n\n';
-      calendarDescription += `🎥 Google Meet: Link included in this calendar event\n\n`;
-      calendarDescription += `Booked by: ${appState.bookerName || 'Guest'} (${appState.bookerEmail || 'N/A'})\n`;
-      calendarDescription += `Required attendees: ${requiredMembers.map(m => m.name).join(', ')}\n`;
+      let calendarDescription = `📌 Topic: ${meetingTitle}\n`;
+      calendarDescription += `📝 Description: ${meetingDescription}\n\n`;
+      calendarDescription += `---\n`;
+      calendarDescription += `🗓️ This meeting was scheduled via the E3 Connect booking system.\n`;
+      calendarDescription += `👤 Booked by: ${appState.bookerEmail || 'N/A'}\n`;
+      calendarDescription += `✅ Required attendee(s): ${requiredMembers.map(m => m.name).join(', ')}\n`;
       if (optionalMembers.length > 0) {
-        calendarDescription += `Optional attendees: ${optionalMembers.map(m => m.name).join(', ')}\n`;
+        calendarDescription += `🤝 Optional attendee(s): ${optionalMembers.map(m => m.name).join(', ')}\n`;
       }
 
       // Create calendar event
