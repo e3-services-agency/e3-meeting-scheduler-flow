@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { Settings, Users, Clock, Mail, Calendar } from 'lucide-react';
+import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare } from 'lucide-react';
 import AdminEmailSetup from '../components/AdminEmailSetup';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import TeamConfig from '../components/TeamConfig';
-import { BusinessHoursManager } from '../components/BusinessHoursManager';
+import ImprovedBusinessHours from '../components/ImprovedBusinessHours';
+import SchedulingWindowSettings from '../components/SchedulingWindowSettings';
+import BookedAppointmentSettings from '../components/BookedAppointmentSettings';
 
 const AdminSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('team');
 
   const tabs = [
     { id: 'team', label: 'Team Management', icon: Users },
-    { id: 'business-hours', label: 'Business Hours', icon: Clock },
+    { id: 'availability', label: 'Availability', icon: Clock },
+    { id: 'scheduling', label: 'Scheduling Window', icon: CalendarDays },
+    { id: 'appointments', label: 'Appointment Settings', icon: CheckSquare },
     { id: 'calendar', label: 'Calendar Setup', icon: Calendar },
     { id: 'email', label: 'Email Setup', icon: Mail }
   ];
@@ -19,8 +23,12 @@ const AdminSettings: React.FC = () => {
     switch (activeTab) {
       case 'team':
         return <TeamConfig />;
-      case 'business-hours':
-        return <BusinessHoursManager />;
+      case 'availability':
+        return <ImprovedBusinessHours />;
+      case 'scheduling':
+        return <SchedulingWindowSettings />;
+      case 'appointments':
+        return <BookedAppointmentSettings />;
       case 'calendar':
         return <GoogleCalendarSetup />;
       case 'email':

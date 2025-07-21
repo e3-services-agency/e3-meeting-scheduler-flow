@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      booked_appointment_settings: {
+        Row: {
+          buffer_time_minutes: number | null
+          created_at: string
+          guests_can_invite_others: boolean
+          id: string
+          is_active: boolean
+          max_bookings_per_day: number | null
+          updated_at: string
+        }
+        Insert: {
+          buffer_time_minutes?: number | null
+          created_at?: string
+          guests_can_invite_others?: boolean
+          id?: string
+          is_active?: boolean
+          max_bookings_per_day?: number | null
+          updated_at?: string
+        }
+        Update: {
+          buffer_time_minutes?: number | null
+          created_at?: string
+          guests_can_invite_others?: boolean
+          id?: string
+          is_active?: boolean
+          max_bookings_per_day?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       business_hours: {
         Row: {
           created_at: string
@@ -363,6 +393,42 @@ export type Database = {
           role?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      scheduling_window_settings: {
+        Row: {
+          availability_type: string
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          max_advance_days: number | null
+          min_notice_hours: number | null
+          start_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          availability_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_advance_days?: number | null
+          min_notice_hours?: number | null
+          start_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          availability_type?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          max_advance_days?: number | null
+          min_notice_hours?: number | null
+          start_date?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
