@@ -117,18 +117,20 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       const bookingSystemLink = `<a href="${currentUrl}">E3 Connect Booking System</a>`;
 
       // Create formatted calendar event description with proper formatting
-      let calendarDescription = `📌 <b>Topic:</b> ${sessionTitle}<br>`;
-      calendarDescription += `📝 <b>Description:</b> ${sessionTopic}`;
+      let calendarDescription = `📌 <b>Session Details</b><br>`;
+      calendarDescription += `Topic: ${sessionTopic}<br>`;
       if (sessionDescription.trim()) {
-        calendarDescription += `<br>${sessionDescription}`;
+        calendarDescription += `Description: ${sessionDescription}<br>`;
       }
-      calendarDescription += `<br><br>---<br>`;
-      calendarDescription += `🗓️ <b>Scheduled via:</b> ${bookingSystemLink}<br>`;
-      calendarDescription += `👤 <b>Booked by:</b> ${appState.bookerEmail || 'N/A'}<br>`;
-      calendarDescription += `✅ <b>Required Attendee(s):</b> ${requiredMembers.map(m => m.name).join(', ')}<br>`;
+      calendarDescription += `<br>---<br>`;
+      calendarDescription += `🗓️ <b>Scheduling Details</b><br>`;
+      calendarDescription += `Scheduled via: ${bookingSystemLink}<br>`;
+      calendarDescription += `Booked by: ${appState.bookerEmail || 'N/A'}<br>`;
+      calendarDescription += `Required Attendee(s): ${requiredMembers.map(m => m.name).join(', ')}<br>`;
       if (optionalMembers.length > 0) {
-        calendarDescription += `🤝 <b>Optional Attendee(s):</b> ${optionalMembers.map(m => m.name).join(', ')}<br>`;
+        calendarDescription += `Optional Attendee(s): ${optionalMembers.map(m => m.name).join(', ')}<br>`;
       }
+
 
       // Create calendar event
       const eventData = {
