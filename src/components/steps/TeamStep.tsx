@@ -225,9 +225,11 @@ const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateCh
       </div>
       {error && <div className="text-e3-flame text-sm mt-4">{error}</div>}
       <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
-        <button onClick={onBack} className="order-2 sm:order-1 py-3 px-6 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40">
-          Back
-        </button>
+        {onBack && (
+          <button onClick={onBack} className="order-2 sm:order-1 py-3 px-6 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40">
+            Back
+          </button>
+        )}
         <button onClick={confirmTeamSelection} className="order-1 sm:order-2 cta focusable">
           Find Availability
         </button>
