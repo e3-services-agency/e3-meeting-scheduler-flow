@@ -65,7 +65,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       console.log('Parsed start time:', startTime.toISOString());
       console.log('Start time in user timezone:', startTime.toLocaleString("en-US", {timeZone: userTimezone}));
       
-      const endTime = new Date(startTime.getTime() + (appState.duration || 60) * 60000);
+      // FIXED: Ensure duration is properly set with fallback
+      const meetingDuration = appState.duration || 30;
+      const endTime = new Date(startTime.getTime() + meetingDuration * 60000);
       console.log('End time:', endTime.toISOString());
 
       // Get selected team members
@@ -114,7 +116,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       const currentUrl = window.location.href;
       const bookingSystemLink = `<a href="${currentUrl}">E3 Connect Booking System</a>`;
 
-      // Create formatted calendar event description
+      // Create formatted calendar event description with proper formatting
       let calendarDescription = `📌 **Topic:** ${sessionTitle}\n`;
       calendarDescription += `📝 **Description:** ${sessionTopic}`;
       if (sessionDescription.trim()) {
@@ -226,11 +228,11 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   console.log('Parsed selected time:', selectedTime.toISOString());
   console.log('Selected time in user TZ:', selectedTime.toLocaleString("en-US", {timeZone: userTimezone}));
   
-  // FIX: Force 24-hour format for time display
+  // FIXED: Force 24-hour format for time display consistently
   const timeString = selectedTime.toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit',
-    hour12: false,
+    hour12: false, // Force 24-hour format
     timeZone: userTimezone
   });
   
@@ -249,6 +251,9 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   // Get selected team members
   const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
   const optionalTeam = teamMembers.filter(m => appState.optionalMembers.has(m.id));
+
+  // FIXED: Ensure duration is properly displayed with fallback
+  const meetingDuration = appState.duration || 30;
 
   if (isBooked) {
     return (
@@ -306,7 +311,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
             </div>
             <div className="flex justify-between sm:block">
               <span className="text-e3-azure font-medium">Duration:</span>
-              <span className="text-e3-white sm:block">{appState.duration || 30} minutes</span>
+              <span className="text-e3-white sm:block">{meetingDuration} minutes</span>
             </div>
             <div className="flex justify-between sm:block">
               <span className="text-e3-azure font-medium">Timezone:</span>
@@ -400,7 +405,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
                 <span className="text-e3-white text-sm sm:text-base">{timeString}</span>
               </div>
               <div className="text-e3-white/80 text-sm">
-                Duration: {appState.duration || 30} minutes
+                Duration: {meetingDuration} minutes
               </div>
               <div className="text-e3-white/80 text-sm">
                 Timezone: {userTimezone}
