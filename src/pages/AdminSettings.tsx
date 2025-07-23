@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare } from 'lucide-react';
 import AdminEmailSetup from '../components/AdminEmailSetup';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import TeamConfig from '../components/TeamConfig';
-import ImprovedBusinessHours from '../components/ImprovedBusinessHours';
+import BusinessHoursManager from '../components/BusinessHoursManager';
 import SchedulingWindowSettings from '../components/SchedulingWindowSettings';
 import BookedAppointmentSettings from '../components/BookedAppointmentSettings';
 
@@ -24,7 +25,7 @@ const AdminSettings: React.FC = () => {
       case 'team':
         return <TeamConfig />;
       case 'availability':
-        return <ImprovedBusinessHours />;
+        return <BusinessHoursManager />;
       case 'scheduling':
         return <SchedulingWindowSettings />;
       case 'appointments':
