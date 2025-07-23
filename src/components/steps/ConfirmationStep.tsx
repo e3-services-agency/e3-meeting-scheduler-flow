@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { StepProps } from '../../types/scheduling';
 import { useTeamData } from '../../hooks/useTeamData';
@@ -221,12 +222,15 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   console.log('Selected time from state:', appState.selectedTime);
   console.log('Selected date from state:', appState.selectedDate);
   console.log('User timezone:', userTimezone);
+  console.log('Duration from state:', appState.duration);
   console.log('Parsed selected time:', selectedTime.toISOString());
   console.log('Selected time in user TZ:', selectedTime.toLocaleString("en-US", {timeZone: userTimezone}));
   
+  // FIX: Force 24-hour format for time display
   const timeString = selectedTime.toLocaleTimeString([], { 
     hour: '2-digit', 
     minute: '2-digit',
+    hour12: false,
     timeZone: userTimezone
   });
   
@@ -302,7 +306,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
             </div>
             <div className="flex justify-between sm:block">
               <span className="text-e3-azure font-medium">Duration:</span>
-              <span className="text-e3-white sm:block">{appState.duration} minutes</span>
+              <span className="text-e3-white sm:block">{appState.duration || 30} minutes</span>
             </div>
             <div className="flex justify-between sm:block">
               <span className="text-e3-azure font-medium">Timezone:</span>
@@ -396,7 +400,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
                 <span className="text-e3-white text-sm sm:text-base">{timeString}</span>
               </div>
               <div className="text-e3-white/80 text-sm">
-                Duration: {appState.duration} minutes
+                Duration: {appState.duration || 30} minutes
               </div>
               <div className="text-e3-white/80 text-sm">
                 Timezone: {userTimezone}
