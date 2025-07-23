@@ -58,8 +58,8 @@ const Index = () => {
     const stepProps = {
       appState,
       onNext: goNext,
-      onBack: goBack,
-      onStateChange: handleStateChange
+      onStateChange: handleStateChange,
+      ...(appState.currentStep !== 2 && { onBack: goBack })
     };
 
     switch (appState.currentStep) {
