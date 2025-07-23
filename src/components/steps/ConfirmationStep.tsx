@@ -88,7 +88,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
       }
 
       // Use the current session title and description
-      const meetingTitle = `${sessionTitle.trim()} – ${sessionTopic.trim()}`;
+      const meetingTitle = `💼${sessionTitle.trim()} – ${sessionTopic.trim()}`;
       const meetingDescription = `${sessionTopic.trim()}\n\n${sessionDescription.trim()}`;
 
       // Save meeting to database
