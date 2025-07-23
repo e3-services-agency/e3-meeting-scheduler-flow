@@ -86,7 +86,7 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
 
       // Use the current session title and description
       const meetingTitle = sessionTitle.trim() || `Meeting with ${requiredMembers.map(m => m.name).join(', ')}`;
-      const meetingDescription = `${sessionTopic.trim()}\n\n${sessionDescription.trim() || 'Meeting scheduled via team scheduling system'}`;
+      const meetingDescription = `${sessionTopic.trim()}\n\n${sessionDescription.trim()}`;
 
       // Save meeting to database
       const { data: meeting, error: dbError } = await (supabase as any)
@@ -109,15 +109,22 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
         throw new Error('Failed to save meeting to database');
       }
 
-      // Create calendar event description
-      let calendarDescription = `📌 Topic: ${meetingTitle}\n`;
-      calendarDescription += `📝 Description: ${meetingDescription}\n\n`;
-      calendarDescription += `---\n`;
-      calendarDescription += `🗓️ This meeting was scheduled via the E3 Connect booking system.\n`;
-      calendarDescription += `👤 Booked by: ${appState.bookerEmail || 'N/A'}\n`;
-      calendarDescription += `✅ Required attendee(s): ${requiredMembers.map(m => m.name).join(', ')}\n`;
+      // Get current page URL for the booking system link
+      const currentUrl = window.location.href;
+      const bookingSystemLink = `<a href="${currentUrl}">E3 Connect Booking System</a>`;
+
+      // Create formatted calendar event description
+      let calendarDescription = `📌 **Topic:** ${sessionTitle}\n`;
+      calendarDescription += `📝 **Description:** ${sessionTopic}`;
+      if (sessionDescription.trim()) {
+        calendarDescription += `\n${sessionDescription}`;
+      }
+      calendarDescription += `\n\n---\n`;
+      calendarDescription += `🗓️ **Scheduled via:** ${bookingSystemLink}\n`;
+      calendarDescription += `👤 **Booked by:** ${appState.bookerEmail || 'N/A'}\n`;
+      calendarDescription += `✅ **Required Attendee(s):** ${requiredMembers.map(m => m.name).join(', ')}\n`;
       if (optionalMembers.length > 0) {
-        calendarDescription += `🤝 Optional attendee(s): ${optionalMembers.map(m => m.name).join(', ')}\n`;
+        calendarDescription += `🤝 **Optional Attendee(s):** ${optionalMembers.map(m => m.name).join(', ')}\n`;
       }
 
       // Create calendar event
