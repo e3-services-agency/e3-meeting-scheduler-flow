@@ -77,15 +77,13 @@ const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateCh
   if (dataError) {
     return (
       <div className="step animate-fade-in">
-        <h2 className="sub-heading mb-6">2. Choose Team Members</h2>
+        <h2 className="sub-heading mb-6">1. Choose Team Members</h2>
         <div className="text-center py-12">
           <p className="text-e3-flame mb-4">{dataError}</p>
           <p className="text-e3-white/60">Please check your database connection and try again.</p>
         </div>
-        <div className="mt-8 flex justify-between">
-          <button onClick={onBack} className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition">
-            Back
-          </button>
+        <div className="mt-8">
+          {/* No back button needed for first step */}
         </div>
       </div>
     );
@@ -101,23 +99,21 @@ const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateCh
   if (filteredTeamMembers.length === 0) {
     return (
       <div className="step animate-fade-in">
-        <h2 className="sub-heading mb-6">2. Choose Team Members</h2>
+        <h2 className="sub-heading mb-6">1. Choose Team Members</h2>
         <div className="text-center py-12">
           <p className="text-e3-white/60 mb-4">No team members available for this client.</p>
           <p className="text-e3-white/60">Please contact support if this seems incorrect.</p>
         </div>
-        <div className="mt-8 flex justify-between">
-          <button onClick={onBack} className="focusable py-2 px-4 text-e3-white/80 hover:text-e3-white transition">
-            Back
-          </button>
+        <div className="mt-8">
+          {/* No back button needed for first step */}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="step animate-fade-in" aria-labelledby="step2-heading">
-      <h2 id="step2-heading" className="sub-heading mb-6">2. Choose Team Members</h2>
+    <div className="step animate-fade-in" aria-labelledby="step1-heading">
+      <h2 id="step1-heading" className="sub-heading mb-6">1. Choose Team Members</h2>
       
       {/* Select All Checkbox */}
       <div className="mb-4 p-4 bg-e3-space-blue/50 rounded-lg border border-e3-white/10">
@@ -224,13 +220,8 @@ const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateCh
         })}
       </div>
       {error && <div className="text-e3-flame text-sm mt-4">{error}</div>}
-      <div className="mt-8 flex flex-col sm:flex-row justify-between gap-4">
-        {onBack && (
-          <button onClick={onBack} className="order-2 sm:order-1 py-3 px-6 text-e3-white/80 hover:text-e3-white transition rounded-lg border border-e3-white/20 hover:border-e3-white/40">
-            Back
-          </button>
-        )}
-        <button onClick={confirmTeamSelection} className="order-1 sm:order-2 cta focusable">
+      <div className="mt-8 flex justify-end">
+        <button onClick={confirmTeamSelection} className="cta focusable">
           Find Availability
         </button>
       </div>

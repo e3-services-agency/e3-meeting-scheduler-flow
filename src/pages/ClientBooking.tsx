@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppState } from '../types/scheduling';
 import ProgressBar from '../components/ProgressBar';
-import DurationStep from '../components/steps/DurationStep';
 import TeamStep from '../components/steps/TeamStep';
 import AvailabilityStep from '../components/steps/AvailabilityStep';
 import BookerInfoStep from '../components/steps/BookerInfoStep';

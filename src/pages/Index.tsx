@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Settings, Clock } from 'lucide-react';
 import { AppState } from '../types/scheduling';
 import ProgressBar from '../components/ProgressBar';
-import DurationStep from '../components/steps/DurationStep';
 import TeamStep from '../components/steps/TeamStep';
 import AvailabilityStep from '../components/steps/AvailabilityStep';
 import InviteStep from '../components/steps/InviteStep';
@@ -11,8 +10,8 @@ import ConfirmationStep from '../components/steps/ConfirmationStep';
 
 const initialState: AppState = {
   currentStep: 1,
-  totalSteps: 5,
-  duration: null,
+  totalSteps: 4,
+  duration: 30, // Set default duration to 30 minutes
   requiredMembers: new Set<string>(), // Changed to Set<string>
   optionalMembers: new Set<string>(), // Changed to Set<string>
   selectedDate: null,
@@ -21,7 +20,6 @@ const initialState: AppState = {
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   timeFormat: '12h',
   steps: [
-    { name: 'Duration' },
     { name: 'Team' },
     { name: 'Date & Time' },
     { name: 'Guests' },
@@ -59,22 +57,20 @@ const Index = () => {
       appState,
       onNext: goNext,
       onStateChange: handleStateChange,
-      ...(appState.currentStep !== 2 && { onBack: goBack })
+      ...(appState.currentStep !== 1 && { onBack: goBack })
     };
 
     switch (appState.currentStep) {
       case 1:
-        return <DurationStep {...stepProps} />;
-      case 2:
         return <TeamStep {...stepProps} />;
-      case 3:
+      case 2:
         return <AvailabilityStep {...stepProps} />;
-      case 4:
+      case 3:
         return <InviteStep {...stepProps} />;
-      case 5:
+      case 4:
         return <ConfirmationStep {...stepProps} />;
       default:
-        return <DurationStep {...stepProps} />;
+        return <TeamStep {...stepProps} />;
     }
   };
 
