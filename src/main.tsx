@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./index.css";
 
+import Landing from "./pages/Landing";
 import ClientBooking from "./pages/ClientBooking";
 import Auth from "./pages/Auth";
 import AdminSettings from "./pages/AdminSettings";
@@ -39,8 +40,8 @@ createRoot(document.getElementById("root")!).render(
               </ProtectedRoute>
             } />
             
-            {/* Default redirect to ATR booking */}
-            <Route path="/" element={<ClientBooking />} />
+            {/* Landing page */}
+            <Route path="/" element={<Landing />} />
             
             {/* 404 page */}
             <Route path="*" element={<NotFound />} />
