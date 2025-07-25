@@ -1,17 +1,19 @@
 
 import React, { useState } from 'react';
-import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare } from 'lucide-react';
+import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare, Home } from 'lucide-react';
 import AdminEmailSetup from '../components/AdminEmailSetup';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import TeamConfig from '../components/TeamConfig';
 import BusinessHoursManager from '../components/BusinessHoursManager';
 import SchedulingWindowSettings from '../components/SchedulingWindowSettings';
 import BookedAppointmentSettings from '../components/BookedAppointmentSettings';
+import LandingPageSettings from '../components/LandingPageSettings';
 
 const AdminSettings: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('team');
+  const [activeTab, setActiveTab] = useState('landing');
 
   const tabs = [
+    { id: 'landing', label: 'Landing Page', icon: Home },
     { id: 'team', label: 'Team Management', icon: Users },
     { id: 'availability', label: 'Availability', icon: Clock },
     { id: 'scheduling', label: 'Scheduling Window', icon: CalendarDays },
@@ -22,6 +24,8 @@ const AdminSettings: React.FC = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'landing':
+        return <LandingPageSettings />;
       case 'team':
         return <TeamConfig />;
       case 'availability':
@@ -35,7 +39,7 @@ const AdminSettings: React.FC = () => {
       case 'email':
         return <AdminEmailSetup />;
       default:
-        return <TeamConfig />;
+        return <LandingPageSettings />;
     }
   };
 

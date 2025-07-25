@@ -253,6 +253,45 @@ export type Database = {
         }
         Relationships: []
       }
+      landing_page_settings: {
+        Row: {
+          created_at: string
+          cta_text: string
+          default_client_team_slug: string | null
+          hero_description: string
+          hero_title: string
+          id: string
+          is_active: boolean
+          show_features: boolean
+          show_how_it_works: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta_text?: string
+          default_client_team_slug?: string | null
+          hero_description?: string
+          hero_title?: string
+          id?: string
+          is_active?: boolean
+          show_features?: boolean
+          show_how_it_works?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta_text?: string
+          default_client_team_slug?: string | null
+          hero_description?: string
+          hero_title?: string
+          id?: string
+          is_active?: boolean
+          show_features?: boolean
+          show_how_it_works?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meetings: {
         Row: {
           attendee_emails: string[]
