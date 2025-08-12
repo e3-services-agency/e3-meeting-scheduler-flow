@@ -17,6 +17,12 @@ interface BusySlot {
   end: string;
 }
 
+interface SchedulingWindowSettings {
+  min_notice_hours: number;
+  max_advance_days: number;
+  availability_type: string;
+}
+
 const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, onBack, onStateChange, clientTeamFilter }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
@@ -25,6 +31,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showOnlyAllAvailable, setShowOnlyAllAvailable] = useState(false);
+  const [schedulingSettings, setSchedulingSettings] = useState<SchedulingWindowSettings | null>(null);
   
   const { teamMembers } = useTeamData();
   const { businessHours, getWorkingHoursForDate, isWorkingDay } = useBusinessHours(clientTeamFilter);
@@ -60,6 +67,46 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     const end = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
+
+  // Load scheduling window settings
+  useEffect(() => {
+    const loadSchedulingSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('scheduling_window_settings')
+          .select('min_notice_hours, max_advance_days, availability_type')
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          setSchedulingSettings({
+            min_notice_hours: data.min_notice_hours || 4,
+            max_advance_days: data.max_advance_days || 60,
+            availability_type: data.availability_type || 'available_now'
+          });
+        } else {
+          // Default settings
+          setSchedulingSettings({
+            min_notice_hours: 4,
+            max_advance_days: 60,
+            availability_type: 'available_now'
+          });
+        }
+      } catch (error) {
+        console.error('Error loading scheduling settings:', error);
+        // Use defaults on error
+        setSchedulingSettings({
+          min_notice_hours: 4,
+          max_advance_days: 60,
+          availability_type: 'available_now'
+        });
+      }
+    };
+
+    loadSchedulingSettings();
+  }, []);
 
   // Load busy schedule for entire month when currentMonth or selectedMemberEmails change
   useEffect(() => {
@@ -137,7 +184,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
 
   // Calculate available slots for selected date with proper per-member availability checking
   useEffect(() => {
-    if (!selectedDate || Object.keys(monthlyBusySchedule).length === 0) {
+    if (!selectedDate || Object.keys(monthlyBusySchedule).length === 0 || !schedulingSettings) {
       setAvailableSlots([]);
       return;
     }
@@ -178,11 +225,22 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const workingEnd = new Date(selectedDate);
       workingEnd.setHours(endHour, endMinute, 0, 0);
       
+      // Apply scheduling window constraints
+      const now = new Date();
+      const minDateTime = new Date(now.getTime() + schedulingSettings.min_notice_hours * 60 * 60 * 1000);
+      
+      // Adjust start time if it's today and we need to respect minimum notice
+      let effectiveStart = new Date(workingStart);
+      if (selectedDate.toDateString() === now.toDateString() && effectiveStart < minDateTime) {
+        effectiveStart = new Date(minDateTime);
+      }
+      
       console.log('Working hours start (', userTimezone, '):', workingStart.toLocaleString('en-US', { timeZone: userTimezone }));
       console.log('Working hours end (', userTimezone, '):', workingEnd.toLocaleString('en-US', { timeZone: userTimezone }));
+      console.log('Effective start after min notice (', userTimezone, '):', effectiveStart.toLocaleString('en-US', { timeZone: userTimezone }));
       
       // Generate time slots
-      let currentTime = new Date(workingStart);
+      let currentTime = new Date(effectiveStart);
       
       while (currentTime < workingEnd) {
         const slotEnd = new Date(currentTime.getTime() + duration * 60000);
@@ -287,15 +345,25 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
     };
 
     calculateAvailableSlots();
-  }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone, selectedMemberEmails.required, selectedMembers.required, selectedMembers.optional]);
+  }, [selectedDate, monthlyBusySchedule, appState.duration, appState.timezone, selectedMemberEmails.required, selectedMembers.required, selectedMembers.optional, schedulingSettings]);
 
   const availableDateSet = useMemo(() => {
-    if (selectedMemberEmails.required.length === 0 || !businessHours) return new Set<string>();
+    if (selectedMemberEmails.required.length === 0 || !businessHours || !schedulingSettings) return new Set<string>();
 
     const availableDates = new Set<string>();
     const duration = appState.duration || 60;
+    const now = new Date();
+
+    // Calculate min and max allowed dates based on scheduling settings
+    const minDateTime = new Date(now.getTime() + schedulingSettings.min_notice_hours * 60 * 60 * 1000);
+    const maxDateTime = new Date(now.getTime() + schedulingSettings.max_advance_days * 24 * 60 * 60 * 1000);
 
     calendarDays.forEach(date => {
+      // Check scheduling window restrictions
+      if (date < minDateTime || date > maxDateTime) {
+        return; // Skip dates outside scheduling window
+      }
+
       // Check if this is a working day based on business hours
       if (!isWorkingDay(date)) {
         return; // Skip non-working days
@@ -314,10 +382,22 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       const dateEnd = new Date(date);
       dateEnd.setHours(endHour, endMinute, 0, 0);
 
+      // For today, ensure the time slots are after the minimum notice period
+      if (date.toDateString() === now.toDateString()) {
+        if (dateStart < minDateTime) {
+          dateStart.setTime(minDateTime.getTime());
+        }
+      }
+
       const slotInterval = duration;
 
       for (let time = new Date(dateStart); time < dateEnd; time = new Date(time.getTime() + slotInterval * 60000)) {
         const slotEnd = new Date(time.getTime() + duration * 60000);
+        
+        // Additional check for minimum notice on the same day
+        if (time < minDateTime) {
+          continue;
+        }
         
         // Check if ALL required members are available for this slot
         let allRequiredAvailable = true;
@@ -343,7 +423,7 @@ const AvailabilityStep: React.FC<AvailabilityStepProps> = ({ appState, onNext, o
       }
     });
     return availableDates;
-  }, [monthlyBusySchedule, calendarDays, appState.duration, appState.timezone, selectedMemberEmails.required, businessHours, isWorkingDay, getWorkingHoursForDate]);
+  }, [monthlyBusySchedule, calendarDays, appState.duration, appState.timezone, selectedMemberEmails.required, businessHours, isWorkingDay, getWorkingHoursForDate, schedulingSettings]);
 
   const isDateAvailable = (date: Date) => {
     return availableDateSet.has(format(date, 'yyyy-MM-dd'));
