@@ -1,13 +1,13 @@
 
 import { GoogleCalendarService } from './googleCalendarService';
 
-// Generate time slots for a given date (9 AM to 5 PM based on duration intervals)
-function generateTimeSlots(dateStr: string, durationMinutes: number = 30): string[] {
+// Generate time slots for a given date based on business hours and duration intervals
+function generateTimeSlots(dateStr: string, durationMinutes: number = 30, startHour: number = 9, endHour: number = 17): string[] {
   const slots: string[] = [];
   const date = new Date(dateStr + 'T00:00:00');
   
-  // Generate slots from 9 AM to 5 PM using the specified duration as intervals
-  for (let hour = 9; hour < 17; hour++) {
+  // Generate slots from startHour to endHour using the specified duration as intervals
+  for (let hour = startHour; hour < endHour; hour++) {
     for (let minute = 0; minute < 60; minute += durationMinutes) {
       const slotDate = new Date(date);
       slotDate.setHours(hour, minute, 0, 0);
