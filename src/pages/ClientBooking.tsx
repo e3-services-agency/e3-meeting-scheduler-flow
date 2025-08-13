@@ -53,6 +53,8 @@ const ClientBooking: React.FC = () => {
       }
 
       try {
+        console.log('Loading client team for slug:', clientSlug);
+        
         // More robust slug to name matching using case-insensitive search
         const { data: teams, error: teamsError } = await supabase
           .from('client_teams')
@@ -65,18 +67,24 @@ const ClientBooking: React.FC = () => {
           return;
         }
 
+        console.log('Available teams:', teams?.map(t => ({ id: t.id, name: t.name, slug: t.name.toLowerCase().replace(/\s+/g, '-') })));
+
         // Find team by slug - convert team names to slugs and compare
         const team = teams?.find(t => {
           const teamSlug = t.name.toLowerCase().replace(/\s+/g, '-');
+          console.log(`Comparing team "${t.name}" (slug: "${teamSlug}") with "${clientSlug}"`);
           return teamSlug === clientSlug?.toLowerCase();
         });
 
         if (!team) {
           console.error('Client team not found for slug:', clientSlug);
-          navigate('/');
+          console.error('Available team slugs:', teams?.map(t => t.name.toLowerCase().replace(/\s+/g, '-')));
+          // Set loading to false so the "Client Not Found" message shows
+          setLoading(false);
           return;
         }
 
+        console.log('Found team:', team);
         setClientTeam(team);
         setAppState(prev => ({ ...prev, clientTeamId: team.id }));
       } catch (error) {
