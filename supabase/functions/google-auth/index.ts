@@ -412,27 +412,79 @@ serve(async (req) => {
 
         const accessToken = await getAccessToken(serviceAccountKey, adminEmail);
         
-        const response = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            timeMin: eventData.timeMin,
-            timeMax: eventData.timeMax,
-            items: emailsToCheck.map(email => ({ id: email }))
-          }),
-        });
+        // Use Events API instead of FreeBusy to filter by response status
+        const results = {};
+        
+        for (const email of emailsToCheck) {
+          try {
+            const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${email}/events?timeMin=${encodeURIComponent(eventData.timeMin)}&timeMax=${encodeURIComponent(eventData.timeMax)}&singleEvents=true&orderBy=startTime`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+            });
 
-        if (!response.ok) {
-          const error = await response.text();
-          console.error('Calendar API error:', error);
-          throw new Error(`Calendar API error: ${error}`);
+            if (!response.ok) {
+              const error = await response.text();
+              console.error(`Calendar API error for ${email}:`, error);
+              // Set empty busy times for this user if API fails
+              results[email] = { busy: [] };
+              continue;
+            }
+
+            const events = await response.json();
+            console.log(`Events for ${email}:`, events.items?.length || 0);
+            
+            // Filter events to only include ones where user is attending
+            const busyTimes = [];
+            for (const event of events.items || []) {
+              // Skip all-day events
+              if (!event.start?.dateTime || !event.end?.dateTime) {
+                continue;
+              }
+              
+              // Check if user has accepted or is the organizer
+              let isAttending = false;
+              
+              // If user is organizer, they're attending
+              if (event.organizer?.email === email) {
+                isAttending = true;
+              } else {
+                // Check attendee response status
+                const attendee = event.attendees?.find(att => att.email === email);
+                if (attendee) {
+                  // Only count as busy if accepted or tentative (not declined or needsAction)
+                  isAttending = attendee.responseStatus === 'accepted' || attendee.responseStatus === 'tentative';
+                } else {
+                  // If not in attendees list but event exists in their calendar, assume attending
+                  isAttending = true;
+                }
+              }
+              
+              if (isAttending) {
+                busyTimes.push({
+                  start: event.start.dateTime,
+                  end: event.end.dateTime
+                });
+              }
+            }
+            
+            results[email] = { busy: busyTimes };
+            console.log(`Busy times for ${email}:`, busyTimes.length);
+            
+          } catch (error) {
+            console.error(`Error checking availability for ${email}:`, error);
+            results[email] = { busy: [] };
+          }
         }
-
-        const availability = await response.json();
-        console.log('Calendar API response:', availability);
+        
+        // Format response to match FreeBusy API structure
+        const availability = {
+          calendars: results
+        };
+        
+        console.log('Final availability response:', availability);
         
         return new Response(JSON.stringify({ success: true, availability }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
