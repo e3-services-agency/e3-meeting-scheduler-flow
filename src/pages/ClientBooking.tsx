@@ -53,21 +53,26 @@ const ClientBooking: React.FC = () => {
       }
 
       try {
-        // Find client team by slug (convert slug back to name)
-        const teamName = clientSlug.toLowerCase() === 'atr' ? 'ATR' : 
-                         clientSlug.toLowerCase() === 'puig' ? 'PUIG' :
-                         clientSlug.toLowerCase() === 'sunday-natural' ? 'Sunday Natural' :
-                         clientSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-        const { data: team, error } = await (supabase as any)
+        // More robust slug to name matching using case-insensitive search
+        const { data: teams, error: teamsError } = await supabase
           .from('client_teams')
           .select('*')
-          .eq('name', teamName)
-          .eq('is_active', true)
-          .single();
+          .eq('is_active', true);
 
-        if (error || !team) {
-          console.error('Client team not found:', teamName);
+        if (teamsError) {
+          console.error('Error fetching teams:', teamsError);
+          navigate('/');
+          return;
+        }
+
+        // Find team by slug - convert team names to slugs and compare
+        const team = teams?.find(t => {
+          const teamSlug = t.name.toLowerCase().replace(/\s+/g, '-');
+          return teamSlug === clientSlug?.toLowerCase();
+        });
+
+        if (!team) {
+          console.error('Client team not found for slug:', clientSlug);
           navigate('/');
           return;
         }
