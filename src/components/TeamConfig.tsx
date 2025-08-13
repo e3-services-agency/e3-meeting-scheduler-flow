@@ -91,18 +91,49 @@ const TeamConfig: React.FC = () => {
     setEditData({
       name: member.name,
       role: member.role,
-      is_active: member.isActive
+      is_active: member.isActive,
+      clientTeams: member.clientTeams.map((team: any) => team.id)
     });
   };
 
   const handleSaveMember = async (memberId: string) => {
     try {
-      const { error } = await supabase
+      // Update member details
+      const { error: memberError } = await supabase
         .from('team_members')
-        .update(editData)
+        .update({
+          name: editData.name,
+          role: editData.role,
+          is_active: editData.is_active
+        })
         .eq('id', memberId);
 
-      if (error) throw error;
+      if (memberError) throw memberError;
+
+      // Update client team assignments
+      if (editData.clientTeams) {
+        // First, remove all existing assignments
+        const { error: deleteError } = await supabase
+          .from('team_member_client_teams')
+          .delete()
+          .eq('team_member_id', memberId);
+
+        if (deleteError) throw deleteError;
+
+        // Then, add new assignments
+        if (editData.clientTeams.length > 0) {
+          const { error: insertError } = await supabase
+            .from('team_member_client_teams')
+            .insert(
+              editData.clientTeams.map((teamId: string) => ({
+                team_member_id: memberId,
+                client_team_id: teamId
+              }))
+            );
+
+          if (insertError) throw insertError;
+        }
+      }
 
       setEditingMember(null);
       setEditData(null);
@@ -149,21 +180,57 @@ const TeamConfig: React.FC = () => {
 
   const handleEditTeam = (team: any) => {
     setEditingTeam(team.id);
+    const teamMemberIds = teamMembers
+      .filter(member => member.clientTeams.some((ct: any) => ct.id === team.id))
+      .map(member => member.id);
+    
     setEditData({
       name: team.name,
       description: team.description,
-      is_active: team.isActive
+      is_active: team.isActive,
+      booking_slug: team.name.toLowerCase().replace(/\s+/g, '-'),
+      teamMembers: teamMemberIds
     });
   };
 
   const handleSaveTeam = async (teamId: string) => {
     try {
-      const { error } = await supabase
+      // Update team details
+      const { error: teamError } = await supabase
         .from('client_teams')
-        .update(editData)
+        .update({
+          name: editData.name,
+          description: editData.description,
+          is_active: editData.is_active
+        })
         .eq('id', teamId);
 
-      if (error) throw error;
+      if (teamError) throw teamError;
+
+      // Update team member assignments
+      if (editData.teamMembers !== undefined) {
+        // First, remove all existing assignments
+        const { error: deleteError } = await supabase
+          .from('team_member_client_teams')
+          .delete()
+          .eq('client_team_id', teamId);
+
+        if (deleteError) throw deleteError;
+
+        // Then, add new assignments
+        if (editData.teamMembers.length > 0) {
+          const { error: insertError } = await supabase
+            .from('team_member_client_teams')
+            .insert(
+              editData.teamMembers.map((memberId: string) => ({
+                team_member_id: memberId,
+                client_team_id: teamId
+              }))
+            );
+
+          if (insertError) throw insertError;
+        }
+      }
 
       setEditingTeam(null);
       setEditData(null);
@@ -364,19 +431,46 @@ const TeamConfig: React.FC = () => {
                         {/* Client Teams */}
                         <div className="mb-4">
                           <p className="text-e3-white/60 text-sm mb-2">Client Teams:</p>
-                          {member.clientTeams.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {member.clientTeams.map(team => (
-                                <span
-                                  key={team.id}
-                                  className="px-2 py-1 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
-                                >
-                                  {team.name}
-                                </span>
+                          {editingMember === member.id ? (
+                            <div className="space-y-2">
+                              {clientTeams.map(team => (
+                                <label key={team.id} className="flex items-center gap-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={editData?.clientTeams?.includes(team.id) || false}
+                                    onChange={(e) => {
+                                      const teamId = team.id;
+                                      const isChecked = e.target.checked;
+                                      setEditData(prev => ({
+                                        ...prev,
+                                        clientTeams: isChecked
+                                          ? [...(prev?.clientTeams || []), teamId]
+                                          : (prev?.clientTeams || []).filter(id => id !== teamId)
+                                      }));
+                                    }}
+                                    className="rounded border-e3-white/20"
+                                  />
+                                  <span className="text-e3-white/80">{team.name}</span>
+                                </label>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-e3-white/40 text-sm">Not assigned to any client teams</span>
+                            <>
+                              {member.clientTeams.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {member.clientTeams.map(team => (
+                                    <span
+                                      key={team.id}
+                                      className="px-2 py-1 bg-e3-azure/20 text-e3-azure text-xs rounded-full"
+                                    >
+                                      {team.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-e3-white/40 text-sm">Not assigned to any client teams</span>
+                              )}
+                            </>
                           )}
                         </div>
                         
@@ -501,42 +595,104 @@ const TeamConfig: React.FC = () => {
                             <p className="text-e3-white/80 mb-2">{team.description}</p>
                           )}
                           
-                          <p className="text-e3-white/60 text-sm mb-3">
-                            Members: {teamMemberCount}
-                          </p>
+                          {/* Team Members Section */}
+                          <div className="mb-4">
+                            <p className="text-e3-white/60 text-sm mb-2">
+                              Team Members: {teamMemberCount}
+                            </p>
+                            {editingTeam === team.id ? (
+                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {teamMembers.map(member => (
+                                  <label key={member.id} className="flex items-center gap-2 text-sm">
+                                    <input
+                                      type="checkbox"
+                                      checked={editData?.teamMembers?.includes(member.id) || false}
+                                      onChange={(e) => {
+                                        const memberId = member.id;
+                                        const isChecked = e.target.checked;
+                                        setEditData(prev => ({
+                                          ...prev,
+                                          teamMembers: isChecked
+                                            ? [...(prev?.teamMembers || []), memberId]
+                                            : (prev?.teamMembers || []).filter(id => id !== memberId)
+                                        }));
+                                      }}
+                                      className="rounded border-e3-white/20"
+                                    />
+                                    <span className="text-e3-white/80">{member.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            ) : (
+                              teamMemberCount > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {teamMembers
+                                    .filter(member => member.clientTeams.some((ct: any) => ct.id === team.id))
+                                    .map(member => (
+                                      <span
+                                        key={member.id}
+                                        className="px-2 py-1 bg-e3-emerald/20 text-e3-emerald text-xs rounded-full"
+                                      >
+                                        {member.name}
+                                      </span>
+                                    ))}
+                                </div>
+                              )
+                            )}
+                          </div>
                           
                           {/* Booking Link Section */}
                           <div className="mt-4 p-3 bg-e3-space-blue/50 rounded-md border border-e3-azure/20">
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-e3-azure text-sm font-medium">Booking Link</p>
-                              <button
-                                onClick={() => {
-                                  const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
-                                  navigator.clipboard.writeText(bookingUrl);
-                                  toast({
-                                    title: "Link Copied!",
-                                    description: "Booking link copied to clipboard",
-                                  });
-                                }}
-                                className="text-xs text-e3-azure hover:text-e3-white px-2 py-1 bg-e3-azure/10 hover:bg-e3-azure/20 rounded transition"
-                              >
-                                Copy Link
-                              </button>
+                              {editingTeam !== team.id && (
+                                <button
+                                  onClick={() => {
+                                    const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                    navigator.clipboard.writeText(bookingUrl);
+                                    toast({
+                                      title: "Link Copied!",
+                                      description: "Booking link copied to clipboard",
+                                    });
+                                  }}
+                                  className="text-xs text-e3-azure hover:text-e3-white px-2 py-1 bg-e3-azure/10 hover:bg-e3-azure/20 rounded transition"
+                                >
+                                  Copy Link
+                                </button>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <code className="flex-1 text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border">
-                                {window.location.origin}/book/{team.name.toLowerCase().replace(/\s+/g, '-')}
-                              </code>
-                              <button
-                                onClick={() => {
-                                  const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
-                                  window.open(bookingUrl, '_blank');
-                                }}
-                                className="text-xs text-e3-emerald hover:text-e3-white px-2 py-1 bg-e3-emerald/10 hover:bg-e3-emerald/20 rounded transition"
-                              >
-                                View
-                              </button>
-                            </div>
+                            {editingTeam === team.id ? (
+                              <div className="space-y-2">
+                                <div>
+                                  <label className="block text-xs text-e3-white/60 mb-1">Custom Slug (optional)</label>
+                                  <input
+                                    type="text"
+                                    value={editData?.booking_slug || ''}
+                                    onChange={(e) => setEditData(prev => ({ ...prev, booking_slug: e.target.value }))}
+                                    placeholder={team.name.toLowerCase().replace(/\s+/g, '-')}
+                                    className="w-full text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border border-e3-white/20"
+                                  />
+                                </div>
+                                <code className="block text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border">
+                                  {window.location.origin}/book/{editData?.booking_slug || team.name.toLowerCase().replace(/\s+/g, '-')}
+                                </code>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <code className="flex-1 text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border">
+                                  {window.location.origin}/book/{team.name.toLowerCase().replace(/\s+/g, '-')}
+                                </code>
+                                <button
+                                  onClick={() => {
+                                    const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                    window.open(bookingUrl, '_blank');
+                                  }}
+                                  className="text-xs text-e3-emerald hover:text-e3-white px-2 py-1 bg-e3-emerald/10 hover:bg-e3-emerald/20 rounded transition"
+                                >
+                                  View
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
