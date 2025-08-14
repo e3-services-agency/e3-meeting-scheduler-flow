@@ -67,18 +67,22 @@ const ClientBooking: React.FC = () => {
           return;
         }
 
-        console.log('Available teams:', teams?.map(t => ({ id: t.id, name: t.name, slug: t.name.toLowerCase().replace(/\s+/g, '-') })));
+        console.log('Available teams:', teams?.map(t => ({ 
+          id: t.id, 
+          name: t.name, 
+          booking_slug: t.booking_slug || t.name.toLowerCase().replace(/\s+/g, '-')
+        })));
 
-        // Find team by slug - convert team names to slugs and compare
+        // Find team by slug - use booking_slug if available, otherwise fall back to name-based slug
         const team = teams?.find(t => {
-          const teamSlug = t.name.toLowerCase().replace(/\s+/g, '-');
+          const teamSlug = t.booking_slug || t.name.toLowerCase().replace(/\s+/g, '-');
           console.log(`Comparing team "${t.name}" (slug: "${teamSlug}") with "${clientSlug}"`);
           return teamSlug === clientSlug?.toLowerCase();
         });
 
         if (!team) {
           console.error('Client team not found for slug:', clientSlug);
-          console.error('Available team slugs:', teams?.map(t => t.name.toLowerCase().replace(/\s+/g, '-')));
+          console.error('Available team slugs:', teams?.map(t => t.booking_slug || t.name.toLowerCase().replace(/\s+/g, '-')));
           // Set loading to false so the "Client Not Found" message shows
           setLoading(false);
           return;

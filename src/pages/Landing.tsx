@@ -12,6 +12,8 @@ interface LandingPageSettings {
   hero_description: string;
   show_how_it_works: boolean;
   show_features: boolean;
+  logo_link: string;
+  footer_copyright_text: string;
 }
 
 const Landing = () => {
@@ -23,6 +25,8 @@ const Landing = () => {
     hero_description: 'Connect with E3 team members and schedule meetings effortlessly.',
     show_how_it_works: true,
     show_features: true,
+    logo_link: 'https://e3-services.com',
+    footer_copyright_text: '© 2025 E3 Services. All rights reserved.',
   });
 
   useEffect(() => {
@@ -61,13 +65,18 @@ const Landing = () => {
       {/* Header */}
       <header className="px-6 py-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <a 
+            href={settings.logo_link} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 hover:opacity-80 transition-opacity"
+          >
             <img src={e3Logo} alt="E3 Logo" className="h-12 w-auto" />
             <div>
               <h1 className="text-2xl font-bold text-e3-white">E3 CONNECT</h1>
               <p className="text-e3-white/80 text-sm">Schedule a Meeting</p>
             </div>
-          </div>
+          </a>
         </div>
       </header>
 
@@ -84,7 +93,7 @@ const Landing = () => {
             </p>
             <Button 
               onClick={handleStartBooking}
-              className="cta text-xl px-12 py-6 text-lg"
+              className="bg-e3-emerald text-e3-space-blue hover:bg-e3-emerald/90 text-xl px-12 py-6 font-bold rounded-lg transition-colors"
             >
               {settings.cta_text}
             </Button>
@@ -148,7 +157,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="px-6 py-8 mt-16 border-t border-e3-white/10">
         <div className="max-w-4xl mx-auto text-center text-e3-white/60">
-          <p>&copy; 2024 E3 Services. All rights reserved.</p>
+          <p>{settings.footer_copyright_text}</p>
         </div>
       </footer>
     </div>

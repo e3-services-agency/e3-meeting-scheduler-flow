@@ -10,7 +10,7 @@ import Landing from "./pages/Landing";
 import ClientBooking from "./pages/ClientBooking";
 import Auth from "./pages/Auth";
 import AdminSettings from "./pages/AdminSettings";
-import TeamConfig from "./pages/TeamConfig";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -32,11 +32,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="/admin-settings" element={
               <ProtectedRoute>
                 <AdminSettings />
-              </ProtectedRoute>
-            } />
-            <Route path="/team-config" element={
-              <ProtectedRoute>
-                <TeamConfig />
               </ProtectedRoute>
             } />
             

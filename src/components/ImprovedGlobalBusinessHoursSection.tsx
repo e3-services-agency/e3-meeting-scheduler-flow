@@ -23,6 +23,7 @@ interface BusinessHours {
   sunday_start: string | null;
   sunday_end: string | null;
   is_active: boolean;
+  time_format?: string;
 }
 
 interface TimeSlot {
@@ -66,13 +67,14 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
   const [formData, setFormData] = useState(() => ({
     name: globalHours?.name || 'Default Business Hours',
     timezone: globalHours?.timezone || 'Europe/Bratislava',
+    time_format: globalHours?.time_format || '24h',
     ...Object.fromEntries(
       DAYS.flatMap(day => [
         [`${day.key}_start`, globalHours?.[`${day.key}_start` as keyof BusinessHours] || '09:00'],
         [`${day.key}_end`, globalHours?.[`${day.key}_end` as keyof BusinessHours] || '18:00']
       ])
     )
-  }));
+  } as any));
 
   const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>(() => {
     const initialSchedules: Record<string, DaySchedule> = {};
@@ -88,7 +90,7 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
   });
 
   const [showIndividualDays, setShowIndividualDays] = useState(false);
-  const [use24HourFormat, setUse24HourFormat] = useState(true);
+  const [use24HourFormat, setUse24HourFormat] = useState(globalHours?.time_format !== '12h');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const formatTime = (time: string) => {
@@ -117,6 +119,9 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
         updatedFormData[`${day.key}_end`] = null;
       }
     });
+
+    // Include time format in the save data
+    updatedFormData.time_format = use24HourFormat ? '24h' : '12h';
 
     await saveGlobalHours(updatedFormData);
   };
@@ -236,6 +241,7 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                     });
                   }}
                   className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
+                  data-time-format={use24HourFormat ? '24h' : '12h'}
                 />
                 <span className="text-e3-white/60">to</span>
                 <input
@@ -248,6 +254,7 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                     });
                   }}
                   className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
+                  data-time-format={use24HourFormat ? '24h' : '12h'}
                 />
               </div>
 
@@ -313,6 +320,7 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                         step="900"
                         onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'start', e.target.value)}
                         className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
+                        data-time-format={use24HourFormat ? '24h' : '12h'}
                       />
                       <span className="text-e3-white/60">to</span>
                       <input
@@ -321,6 +329,7 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                         step="900"
                         onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'end', e.target.value)}
                         className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
+                        data-time-format={use24HourFormat ? '24h' : '12h'}
                       />
                     </div>
 

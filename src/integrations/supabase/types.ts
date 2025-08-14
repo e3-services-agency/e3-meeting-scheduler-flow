@@ -96,6 +96,7 @@ export type Database = {
           sunday_start: string | null
           thursday_end: string | null
           thursday_start: string | null
+          time_format: string | null
           timezone: string
           tuesday_end: string | null
           tuesday_start: string | null
@@ -118,6 +119,7 @@ export type Database = {
           sunday_start?: string | null
           thursday_end?: string | null
           thursday_start?: string | null
+          time_format?: string | null
           timezone?: string
           tuesday_end?: string | null
           tuesday_start?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           sunday_start?: string | null
           thursday_end?: string | null
           thursday_start?: string | null
+          time_format?: string | null
           timezone?: string
           tuesday_end?: string | null
           tuesday_start?: string | null
@@ -165,6 +168,7 @@ export type Database = {
           sunday_start: string | null
           thursday_end: string | null
           thursday_start: string | null
+          time_format: string | null
           timezone: string
           tuesday_end: string | null
           tuesday_start: string | null
@@ -187,6 +191,7 @@ export type Database = {
           sunday_start?: string | null
           thursday_end?: string | null
           thursday_start?: string | null
+          time_format?: string | null
           timezone: string
           tuesday_end?: string | null
           tuesday_start?: string | null
@@ -209,6 +214,7 @@ export type Database = {
           sunday_start?: string | null
           thursday_end?: string | null
           thursday_start?: string | null
+          time_format?: string | null
           timezone?: string
           tuesday_end?: string | null
           tuesday_start?: string | null
@@ -228,6 +234,7 @@ export type Database = {
       }
       client_teams: {
         Row: {
+          booking_slug: string | null
           created_at: string
           description: string | null
           id: string
@@ -236,6 +243,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_slug?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -244,6 +252,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_slug?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -258,10 +267,12 @@ export type Database = {
           created_at: string
           cta_text: string
           default_client_team_slug: string | null
+          footer_copyright_text: string | null
           hero_description: string
           hero_title: string
           id: string
           is_active: boolean
+          logo_link: string | null
           show_features: boolean
           show_how_it_works: boolean
           updated_at: string
@@ -270,10 +281,12 @@ export type Database = {
           created_at?: string
           cta_text?: string
           default_client_team_slug?: string | null
+          footer_copyright_text?: string | null
           hero_description?: string
           hero_title?: string
           id?: string
           is_active?: boolean
+          logo_link?: string | null
           show_features?: boolean
           show_how_it_works?: boolean
           updated_at?: string
@@ -282,10 +295,12 @@ export type Database = {
           created_at?: string
           cta_text?: string
           default_client_team_slug?: string | null
+          footer_copyright_text?: string | null
           hero_description?: string
           hero_title?: string
           id?: string
           is_active?: boolean
+          logo_link?: string | null
           show_features?: boolean
           show_how_it_works?: boolean
           updated_at?: string

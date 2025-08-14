@@ -195,13 +195,14 @@ const TeamConfig: React.FC = () => {
 
   const handleSaveTeam = async (teamId: string) => {
     try {
-      // Update team details
+      // Update team details including booking_slug
       const { error: teamError } = await supabase
         .from('client_teams')
         .update({
           name: editData.name,
           description: editData.description,
-          is_active: editData.is_active
+          is_active: editData.is_active,
+          booking_slug: editData.booking_slug
         })
         .eq('id', teamId);
 
@@ -306,18 +307,9 @@ const TeamConfig: React.FC = () => {
     <div className="min-h-screen bg-e3-space-blue p-6">
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="heading text-e3-emerald mb-2">Team Configuration</h1>
-              <p className="text-e3-white/80">Manage team members with Google Workspace domain-wide calendar access</p>
-            </div>
-            <Link
-              to="/admin-settings"
-              className="flex items-center gap-2 px-4 py-2 bg-e3-azure/20 text-e3-azure hover:bg-e3-azure/30 hover:text-e3-white transition rounded-lg"
-            >
-              <Cog className="w-4 h-4" />
-              Admin Settings
-            </Link>
+          <div>
+            <h1 className="heading text-e3-emerald mb-2">Team Configuration</h1>
+            <p className="text-e3-white/80">Manage team members with Google Workspace domain-wide calendar access</p>
           </div>
         </header>
 
