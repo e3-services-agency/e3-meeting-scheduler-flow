@@ -28,6 +28,7 @@ export const useTeamData = () => {
         id: team.id,
         name: team.name,
         description: team.description,
+        booking_slug: team.booking_slug,
         isActive: team.is_active,
         createdAt: team.created_at,
         updatedAt: team.updated_at
@@ -65,6 +66,7 @@ export const useTeamData = () => {
             id,
             name,
             description,
+            booking_slug,
             is_active,
             created_at,
             updated_at
@@ -89,6 +91,7 @@ export const useTeamData = () => {
             id: team.id,
             name: team.name,
             description: team.description,
+            booking_slug: team.booking_slug,
             isActive: team.is_active,
             createdAt: team.created_at,
             updatedAt: team.updated_at

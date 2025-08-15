@@ -1,40 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Monitor, Save, Globe } from 'lucide-react';
-import { supabase } from '../integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface BookingPageSettings {
-  id?: string;
   logo_url: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 const BookingPageSettings: React.FC = () => {
   const [settings, setSettings] = useState<BookingPageSettings>({
     logo_url: 'https://e3-services.com'
   });
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    try {
-      // For now, just use default settings since the table types aren't ready
-      // This will work once the Supabase types are regenerated
-      setSettings({
-        logo_url: 'https://e3-services.com'
-      });
-    } catch (error) {
-      console.error('Error loading booking page settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -45,7 +22,7 @@ const BookingPageSettings: React.FC = () => {
       
       toast({
         title: "Success",
-        description: "Booking page settings saved successfully",
+        description: "Booking page settings will be saved once database types are updated",
       });
     } catch (error) {
       console.error('Error saving booking page settings:', error);
@@ -58,17 +35,6 @@ const BookingPageSettings: React.FC = () => {
       setSaving(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="bg-e3-space-blue/30 rounded-lg p-6 border border-e3-white/10">
-        <div className="flex items-center gap-3 text-e3-white">
-          <div className="w-6 h-6 border-2 border-e3-white/30 border-t-e3-white rounded-full animate-spin" />
-          <span>Loading booking page settings...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="bg-e3-space-blue/30 rounded-lg p-6 border border-e3-white/10">
@@ -110,6 +76,19 @@ const BookingPageSettings: React.FC = () => {
                   </code>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-4">
+          <div className="flex items-start gap-2 text-e3-white/80">
+            <Monitor className="w-5 h-5 mt-0.5 text-e3-azure" />
+            <div>
+              <p className="font-medium mb-1">Configuration Status</p>
+              <p className="text-sm">
+                This setting will be fully functional once the database types are regenerated. 
+                The UTM tracking is already implemented in the booking pages.
+              </p>
             </div>
           </div>
         </div>
