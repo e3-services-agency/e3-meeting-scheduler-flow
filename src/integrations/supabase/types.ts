@@ -80,6 +80,27 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_page_settings: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       business_hours: {
         Row: {
           created_at: string

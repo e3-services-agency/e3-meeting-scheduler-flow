@@ -18,6 +18,7 @@ export interface ClientTeam {
   id: string;
   name: string;
   description?: string;
+  booking_slug?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

@@ -31,7 +31,10 @@ const AdminSettings: React.FC = () => {
       case 'landing':
         return <LandingPageSettings />;
       case 'booking':
-        return <BookingPageSettings />;
+        return <div className="text-center py-8 text-e3-white/60">
+          <Monitor className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>Booking page settings will be available once the database types are updated.</p>
+        </div>;
       case 'team':
         return <TeamConfig />;
       case 'roles':
