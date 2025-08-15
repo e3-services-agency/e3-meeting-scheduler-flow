@@ -169,11 +169,17 @@ const ClientBooking: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <header className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <img 
-                src={e3Logo} 
-                alt="E3 Logo" 
-                className="h-12"
-              />
+              <a 
+                href={`https://e3-services.com?utm_source=booking&utm_medium=referral&utm_campaign=${clientSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img 
+                  src={e3Logo} 
+                  alt="E3 Logo" 
+                  className="h-12 hover:opacity-90 transition-opacity cursor-pointer"
+                />
+              </a>
               <div className="text-center flex-1">
                 <h1 className="text-3xl font-bold text-e3-emerald">Schedule a Meeting</h1>
                 <p className="text-e3-white/60 text-sm mt-1">Follow the steps below to book your session.</p>

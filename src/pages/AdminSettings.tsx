@@ -1,20 +1,24 @@
 
 import React, { useState } from 'react';
-import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare, Home } from 'lucide-react';
+import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare, Home, UserCog, Monitor } from 'lucide-react';
 import AdminEmailSetup from '../components/AdminEmailSetup';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import TeamConfig from '../components/TeamConfig';
+import TeamRolesManager from '../components/TeamRolesManager';
 import BusinessHoursManager from '../components/BusinessHoursManager';
 import SchedulingWindowSettings from '../components/SchedulingWindowSettings';
 import BookedAppointmentSettings from '../components/BookedAppointmentSettings';
 import LandingPageSettings from '../components/LandingPageSettings';
+import BookingPageSettings from '../components/BookingPageSettings';
 
 const AdminSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('landing');
 
   const tabs = [
     { id: 'landing', label: 'Landing Page', icon: Home },
+    { id: 'booking', label: 'Booking Pages', icon: Monitor },
     { id: 'team', label: 'Team Management', icon: Users },
+    { id: 'roles', label: 'Team Roles', icon: UserCog },
     { id: 'availability', label: 'Availability', icon: Clock },
     { id: 'scheduling', label: 'Scheduling Window', icon: CalendarDays },
     { id: 'appointments', label: 'Appointment Settings', icon: CheckSquare },
@@ -26,8 +30,12 @@ const AdminSettings: React.FC = () => {
     switch (activeTab) {
       case 'landing':
         return <LandingPageSettings />;
+      case 'booking':
+        return <BookingPageSettings />;
       case 'team':
         return <TeamConfig />;
+      case 'roles':
+        return <TeamRolesManager />;
       case 'availability':
         return <BusinessHoursManager />;
       case 'scheduling':

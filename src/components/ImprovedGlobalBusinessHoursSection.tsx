@@ -241,7 +241,9 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                     });
                   }}
                   className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
-                  data-time-format={use24HourFormat ? '24h' : '12h'}
+                  style={{
+                    colorScheme: use24HourFormat ? 'dark' : 'light'
+                  }}
                 />
                 <span className="text-e3-white/60">to</span>
                 <input
@@ -254,7 +256,9 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                     });
                   }}
                   className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
-                  data-time-format={use24HourFormat ? '24h' : '12h'}
+                  style={{
+                    colorScheme: use24HourFormat ? 'dark' : 'light'
+                  }}
                 />
               </div>
 
@@ -320,7 +324,9 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                         step="900"
                         onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'start', e.target.value)}
                         className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
-                        data-time-format={use24HourFormat ? '24h' : '12h'}
+                        style={{
+                          colorScheme: use24HourFormat ? 'dark' : 'light'
+                        }}
                       />
                       <span className="text-e3-white/60">to</span>
                       <input
@@ -329,7 +335,9 @@ export const ImprovedGlobalBusinessHoursSection: React.FC<Props> = ({
                         step="900"
                         onChange={(e) => handleUpdateTimeSlot(day.key, slotIndex, 'end', e.target.value)}
                         className="bg-e3-space-blue/80 border border-e3-emerald/30 rounded-lg px-3 py-2 text-e3-white text-sm focus:border-e3-emerald focus:bg-e3-emerald/10 outline-none transition-colors"
-                        data-time-format={use24HourFormat ? '24h' : '12h'}
+                        style={{
+                          colorScheme: use24HourFormat ? 'dark' : 'light'
+                        }}
                       />
                     </div>
 

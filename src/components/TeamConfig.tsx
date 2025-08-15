@@ -188,7 +188,7 @@ const TeamConfig: React.FC = () => {
       name: team.name,
       description: team.description,
       is_active: team.isActive,
-      booking_slug: team.name.toLowerCase().replace(/\s+/g, '-'),
+      booking_slug: team.booking_slug || team.name.toLowerCase().replace(/\s+/g, '-'),
       teamMembers: teamMemberIds
     });
   };
@@ -656,7 +656,7 @@ const TeamConfig: React.FC = () => {
                             {editingTeam === team.id ? (
                               <div className="space-y-2">
                                 <div>
-                                  <label className="block text-xs text-e3-white/60 mb-1">Custom Slug (optional)</label>
+                                  <label className="block text-xs text-e3-white/60 mb-1">Booking Slug</label>
                                   <input
                                     type="text"
                                     value={editData?.booking_slug || ''}
@@ -672,7 +672,7 @@ const TeamConfig: React.FC = () => {
                             ) : (
                               <div className="flex items-center gap-2">
                                 <code className="flex-1 text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border">
-                                  {window.location.origin}/book/{team.name.toLowerCase().replace(/\s+/g, '-')}
+                                  {window.location.origin}/book/{team.booking_slug || team.name.toLowerCase().replace(/\s+/g, '-')}
                                 </code>
                                 <button
                                   onClick={() => {
