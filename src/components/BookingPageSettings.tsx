@@ -80,18 +80,6 @@ const BookingPageSettings: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-e3-space-blue/50 border border-e3-white/20 rounded-lg p-4">
-          <div className="flex items-start gap-2 text-e3-white/80">
-            <Monitor className="w-5 h-5 mt-0.5 text-e3-azure" />
-            <div>
-              <p className="font-medium mb-1">Configuration Status</p>
-              <p className="text-sm">
-                This setting will be fully functional once the database types are regenerated. 
-                The UTM tracking is already implemented in the booking pages.
-              </p>
-            </div>
-          </div>
-        </div>
 
         <div className="flex items-center gap-3">
           <button

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog, Save, X } from 'lucide-react';
+import { Plus, Settings, Calendar, Users, Edit, Trash2, Loader, Cog, Save, X, Building, UserCog } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTeamData } from '../hooks/useTeamData';
 import { GoogleCalendarService } from '../utils/googleCalendarService';
@@ -8,9 +8,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '../integrations/supabase/client';
 import AddMemberForm from './forms/AddMemberForm';
 import AddTeamForm from './forms/AddTeamForm';
+import TeamRolesManager from './TeamRolesManager';
 
 const TeamConfig: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'members' | 'teams'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'teams' | 'roles'>('members');
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddTeam, setShowAddTeam] = useState(false);
   const [editingMember, setEditingMember] = useState<string | null>(null);
@@ -334,8 +335,19 @@ const TeamConfig: React.FC = () => {
                 : 'text-e3-white/70 hover:text-e3-white hover:bg-e3-white/5'
             }`}
           >
-            <Settings className="w-4 h-4 mr-2" />
+            <Building className="w-4 h-4 mr-2" />
             Client Teams ({clientTeams.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('roles')}
+            className={`flex items-center px-4 py-2 rounded-md transition ${
+              activeTab === 'roles' 
+                ? 'bg-e3-azure text-e3-white' 
+                : 'text-e3-white/70 hover:text-e3-white hover:bg-e3-white/5'
+            }`}
+          >
+            <UserCog className="w-4 h-4 mr-2" />
+            Team Roles
           </button>
         </div>
 
@@ -638,19 +650,19 @@ const TeamConfig: React.FC = () => {
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-e3-azure text-sm font-medium">Booking Link</p>
                               {editingTeam !== team.id && (
-                                <button
-                                  onClick={() => {
-                                    const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
-                                    navigator.clipboard.writeText(bookingUrl);
-                                    toast({
-                                      title: "Link Copied!",
-                                      description: "Booking link copied to clipboard",
-                                    });
-                                  }}
-                                  className="text-xs text-e3-azure hover:text-e3-white px-2 py-1 bg-e3-azure/10 hover:bg-e3-azure/20 rounded transition"
-                                >
-                                  Copy Link
-                                </button>
+                                 <button
+                                   onClick={() => {
+                                     const bookingUrl = `${window.location.origin}/book/${team.booking_slug || team.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                     navigator.clipboard.writeText(bookingUrl);
+                                     toast({
+                                       title: "Link Copied!",
+                                       description: "Booking link copied to clipboard",
+                                     });
+                                   }}
+                                   className="text-xs text-e3-azure hover:text-e3-white px-2 py-1 bg-e3-azure/10 hover:bg-e3-azure/20 rounded transition"
+                                 >
+                                   Copy Link
+                                 </button>
                               )}
                             </div>
                             {editingTeam === team.id ? (
@@ -674,15 +686,15 @@ const TeamConfig: React.FC = () => {
                                 <code className="flex-1 text-xs text-e3-white/80 bg-e3-space-blue/70 px-2 py-1 rounded border">
                                   {window.location.origin}/book/{team.booking_slug || team.name.toLowerCase().replace(/\s+/g, '-')}
                                 </code>
-                                <button
-                                  onClick={() => {
-                                    const bookingUrl = `${window.location.origin}/book/${team.name.toLowerCase().replace(/\s+/g, '-')}`;
-                                    window.open(bookingUrl, '_blank');
-                                  }}
-                                  className="text-xs text-e3-emerald hover:text-e3-white px-2 py-1 bg-e3-emerald/10 hover:bg-e3-emerald/20 rounded transition"
-                                >
-                                  View
-                                </button>
+                                 <button
+                                   onClick={() => {
+                                     const bookingUrl = `${window.location.origin}/book/${team.booking_slug || team.name.toLowerCase().replace(/\s+/g, '-')}`;
+                                     window.open(bookingUrl, '_blank');
+                                   }}
+                                   className="text-xs text-e3-emerald hover:text-e3-white px-2 py-1 bg-e3-emerald/10 hover:bg-e3-emerald/20 rounded transition"
+                                 >
+                                   View
+                                 </button>
                               </div>
                             )}
                           </div>
@@ -731,7 +743,12 @@ const TeamConfig: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+         )}
+
+         {/* Team Roles Tab */}
+         {activeTab === 'roles' && (
+           <TeamRolesManager />
+         )}
 
         {/* Add Member Form Modal */}
         {showAddMember && (

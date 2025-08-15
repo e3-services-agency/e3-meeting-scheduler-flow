@@ -1,10 +1,9 @@
 
 import React, { useState } from 'react';
-import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare, Home, UserCog, Monitor } from 'lucide-react';
+import { Settings, Users, Clock, Mail, Calendar, CalendarDays, CheckSquare, Home, Monitor } from 'lucide-react';
 import AdminEmailSetup from '../components/AdminEmailSetup';
 import GoogleCalendarSetup from '../components/GoogleCalendarSetup';
 import TeamConfig from '../components/TeamConfig';
-import TeamRolesManager from '../components/TeamRolesManager';
 import BusinessHoursManager from '../components/BusinessHoursManager';
 import SchedulingWindowSettings from '../components/SchedulingWindowSettings';
 import BookedAppointmentSettings from '../components/BookedAppointmentSettings';
@@ -18,7 +17,6 @@ const AdminSettings: React.FC = () => {
     { id: 'landing', label: 'Landing Page', icon: Home },
     { id: 'booking', label: 'Booking Pages', icon: Monitor },
     { id: 'team', label: 'Team Management', icon: Users },
-    { id: 'roles', label: 'Team Roles', icon: UserCog },
     { id: 'availability', label: 'Availability', icon: Clock },
     { id: 'scheduling', label: 'Scheduling Window', icon: CalendarDays },
     { id: 'appointments', label: 'Appointment Settings', icon: CheckSquare },
@@ -34,8 +32,6 @@ const AdminSettings: React.FC = () => {
         return <BookingPageSettings />;
       case 'team':
         return <TeamConfig />;
-      case 'roles':
-        return <TeamRolesManager />;
       case 'availability':
         return <BusinessHoursManager />;
       case 'scheduling':
