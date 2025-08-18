@@ -16,7 +16,6 @@ export type Database = {
     Tables: {
       admin_google_credentials: {
         Row: {
-          access_token: string
           admin_email: string
           created_at: string
           domain: string
@@ -24,7 +23,6 @@ export type Database = {
           encrypted_refresh_token: string | null
           id: string
           last_used_at: string | null
-          refresh_token: string
           rotation_count: number | null
           scopes: string[]
           security_flags: Json | null
@@ -33,7 +31,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_token: string
           admin_email: string
           created_at?: string
           domain: string
@@ -41,7 +38,6 @@ export type Database = {
           encrypted_refresh_token?: string | null
           id?: string
           last_used_at?: string | null
-          refresh_token: string
           rotation_count?: number | null
           scopes?: string[]
           security_flags?: Json | null
@@ -50,7 +46,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          access_token?: string
           admin_email?: string
           created_at?: string
           domain?: string
@@ -58,7 +53,6 @@ export type Database = {
           encrypted_refresh_token?: string | null
           id?: string
           last_used_at?: string | null
-          refresh_token?: string
           rotation_count?: number | null
           scopes?: string[]
           security_flags?: Json | null
@@ -341,6 +335,13 @@ export type Database = {
             columns: ["credential_id"]
             isOneToOne: false
             referencedRelation: "admin_google_credentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_credentials_audit_log_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "secure_google_credentials"
             referencedColumns: ["id"]
           },
         ]
@@ -646,7 +647,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      secure_google_credentials: {
+        Row: {
+          admin_email: string | null
+          created_at: string | null
+          domain: string | null
+          encrypted_access_token: string | null
+          encrypted_refresh_token: string | null
+          id: string | null
+          last_used_at: string | null
+          scopes: string[] | null
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          admin_email?: string | null
+          created_at?: string | null
+          domain?: string | null
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
+          id?: string | null
+          last_used_at?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          admin_email?: string | null
+          created_at?: string | null
+          domain?: string | null
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
+          id?: string | null
+          last_used_at?: string | null
+          scopes?: string[] | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_access_meeting: {
@@ -659,6 +698,23 @@ export type Database = {
       }
       is_admin_user: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      log_credential_access: {
+        Args: {
+          action_param: string
+          credential_id_param: string
+          success_param?: boolean
+        }
+        Returns: undefined
+      }
+      rotate_google_credentials: {
+        Args: {
+          credential_id_param: string
+          new_encrypted_access_token: string
+          new_encrypted_refresh_token: string
+          new_expires_at: string
+        }
         Returns: boolean
       }
     }
