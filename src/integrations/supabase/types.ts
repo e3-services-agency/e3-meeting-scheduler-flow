@@ -700,6 +700,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_profile_admin: {
+        Args: { user_id_param: string }
+        Returns: boolean
+      }
       log_credential_access: {
         Args: {
           action_param: string
