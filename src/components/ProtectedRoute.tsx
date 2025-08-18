@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: React.ReactNode | ((user: User | null) => React.ReactNode);
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
@@ -47,7 +47,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  return <>{children}</>;
+  return <>{typeof children === 'function' ? children(user) : children}</>;
 };
 
 export default ProtectedRoute;

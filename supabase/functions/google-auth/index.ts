@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 // JWT signing function for Google Service Account
 async function createJWT(serviceAccountKey: any, userEmail?: string) {
@@ -135,6 +135,50 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Check authentication for all requests
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.log('❌ No Authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Missing Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extract JWT token
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Verify the JWT and get user info
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.log('❌ Invalid JWT token:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Check if user is admin for sensitive operations
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError) {
+      console.log('❌ Error fetching user profile:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'Error checking user permissions' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const isAdmin = profile?.role === 'admin';
+    
+    // Log authenticated request
+    console.log(`✅ Authenticated request from ${user.email} (admin: ${isAdmin})`);
+
     const { action, userEmail, eventData, email, userEmails } = await req.json();
     console.log('Processing action:', action);
     const serviceAccountKeyStr = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY');
@@ -163,13 +207,23 @@ serve(async (req) => {
     }
     console.log('Service account email:', serviceAccountKey.client_email);
 
+    // SECURITY: Restrict sensitive operations to admin users only
+    const sensitiveOperations = ['test_connection', 'list_workspace_users'];
+    if (sensitiveOperations.includes(action) && !isAdmin) {
+      console.log(`❌ Non-admin user ${user.email} attempted ${action}`);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden - Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     switch (action) {
       case 'test_connection': {
         // Test the service account connection
         const accessToken = await getAccessToken(serviceAccountKey);
         
         // Store admin credentials in database
-        const { error: insertError } = await supabase
+        const { error: insertError } = await supabaseAdmin
           .from('admin_google_credentials')
           .upsert({
             admin_email: serviceAccountKey.client_email,

@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import AdminSettings from "./pages/AdminSettings";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,7 +32,11 @@ createRoot(document.getElementById("root")!).render(
             {/* Protected admin routes */}
             <Route path="/admin-settings" element={
               <ProtectedRoute>
-                <AdminSettings />
+                {(user) => (
+                  <AdminProtectedRoute user={user}>
+                    <AdminSettings />
+                  </AdminProtectedRoute>
+                )}
               </ProtectedRoute>
             } />
             
