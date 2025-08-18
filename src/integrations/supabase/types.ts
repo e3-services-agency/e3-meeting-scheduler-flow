@@ -649,6 +649,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_meeting: {
+        Args: { meeting_id: string; user_email: string }
+        Returns: boolean
+      }
       encrypt_token: {
         Args: { token: string }
         Returns: string
