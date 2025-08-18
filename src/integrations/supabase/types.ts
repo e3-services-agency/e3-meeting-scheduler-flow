@@ -647,6 +647,18 @@ export type Database = {
       }
     }
     Views: {
+      admin_users: {
+        Row: {
+          user_id: string | null
+        }
+        Insert: {
+          user_id?: string | null
+        }
+        Update: {
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       secure_google_credentials: {
         Row: {
           admin_email: string | null
@@ -706,10 +718,6 @@ export type Database = {
       }
       is_admin_user: {
         Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_profile_admin: {
-        Args: { user_id_param: string }
         Returns: boolean
       }
       log_credential_access: {
