@@ -688,6 +688,14 @@ export type Database = {
       }
     }
     Functions: {
+      audit_google_credentials_access: {
+        Args: {
+          action_type: string
+          additional_info?: Json
+          credential_id_param?: string
+        }
+        Returns: undefined
+      }
       can_access_meeting: {
         Args: { meeting_id: string; user_email: string }
         Returns: boolean
