@@ -19,13 +19,23 @@ const ConfirmationStep: React.FC<StepProps> = ({ appState, onBack, onStateChange
   const [sessionTitle, setSessionTitle] = useState(() => {
     if (appState.bookingTitle) return appState.bookingTitle;
     
-    // Get client name from URL or client team
+    // Get client name from URL slug or client team
     const getClientName = () => {
       const path = window.location.pathname;
       const slug = path.split('/').pop();
-      if (slug === 'atr') return 'ATR';
-      if (slug === 'puig') return 'PUIG';
-      if (slug === 'sunday-natural') return 'Sunday Natural';
+      
+      // Map URL slugs to proper client team names
+      const slugToNameMap: Record<string, string> = {
+        'atr': 'ATR',
+        'puig': 'PUIG', 
+        'co-founders': 'Co-Founders',
+        'sn': 'Sunday Natural'
+      };
+      
+      // First try to get name from slug mapping
+      if (slug && slugToNameMap[slug]) {
+        return slugToNameMap[slug];
+      }
       
       // Try to get from team members' client teams
       const requiredTeam = teamMembers.filter(m => appState.requiredMembers.has(m.id));
