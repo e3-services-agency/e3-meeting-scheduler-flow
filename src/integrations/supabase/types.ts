@@ -666,10 +666,6 @@ export type Database = {
         Args: { token: string }
         Returns: string
       }
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       rotate_google_credentials: {
         Args: {
           credential_id_param: string
