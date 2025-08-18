@@ -337,13 +337,6 @@ export type Database = {
             referencedRelation: "admin_google_credentials"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "google_credentials_audit_log_credential_id_fkey"
-            columns: ["credential_id"]
-            isOneToOne: false
-            referencedRelation: "secure_google_credentials"
-            referencedColumns: ["id"]
-          },
         ]
       }
       landing_page_settings: {
@@ -647,57 +640,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_users: {
-        Row: {
-          user_id: string | null
-        }
-        Insert: {
-          user_id?: string | null
-        }
-        Update: {
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      secure_google_credentials: {
-        Row: {
-          admin_email: string | null
-          created_at: string | null
-          domain: string | null
-          encrypted_access_token: string | null
-          encrypted_refresh_token: string | null
-          id: string | null
-          last_used_at: string | null
-          scopes: string[] | null
-          token_expires_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          admin_email?: string | null
-          created_at?: string | null
-          domain?: string | null
-          encrypted_access_token?: string | null
-          encrypted_refresh_token?: string | null
-          id?: string | null
-          last_used_at?: string | null
-          scopes?: string[] | null
-          token_expires_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          admin_email?: string | null
-          created_at?: string | null
-          domain?: string | null
-          encrypted_access_token?: string | null
-          encrypted_refresh_token?: string | null
-          id?: string | null
-          last_used_at?: string | null
-          scopes?: string[] | null
-          token_expires_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       can_access_meeting: {
