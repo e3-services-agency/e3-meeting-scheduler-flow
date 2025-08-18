@@ -9,7 +9,92 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const encryptionKey = Deno.env.get('GOOGLE_TOKEN_ENCRYPTION_KEY')!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+// Encryption utilities for secure token storage
+async function encryptToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(encryptionKey.slice(0, 32)); // Use first 32 chars as key
+  const tokenData = encoder.encode(token);
+  
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    tokenData
+  );
+  
+  // Combine IV and encrypted data
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function decryptToken(encryptedToken: string): Promise<string> {
+  try {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const keyData = encoder.encode(encryptionKey.slice(0, 32));
+    
+    const combined = new Uint8Array(atob(encryptedToken).split('').map(c => c.charCodeAt(0)));
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    );
+    
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encrypted
+    );
+    
+    return decoder.decode(decrypted);
+  } catch (error) {
+    console.error('Token decryption failed:', error);
+    throw new Error('Failed to decrypt token');
+  }
+}
+
+// Comprehensive audit logging
+async function logCredentialAccess(credentialId: string, action: string, req: Request, success: boolean = true, errorMessage?: string) {
+  try {
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+    const forwardedFor = req.headers.get('x-forwarded-for');
+    const realIp = req.headers.get('x-real-ip');
+    const ipAddress = forwardedFor?.split(',')[0] || realIp || 'unknown';
+    
+    await supabaseAdmin
+      .from('google_credentials_audit_log')
+      .insert({
+        credential_id: credentialId,
+        action,
+        user_agent: userAgent,
+        ip_address: ipAddress,
+        edge_function_name: 'google-auth',
+        success,
+        error_message: errorMessage
+      });
+  } catch (error) {
+    console.error('Failed to log credential access:', error);
+  }
+}
 
 // JWT signing function for Google Service Account
 async function createJWT(serviceAccountKey: any, userEmail?: string) {
@@ -222,26 +307,47 @@ serve(async (req) => {
         // Test the service account connection
         const accessToken = await getAccessToken(serviceAccountKey);
         
-        // Store admin credentials in database
-        const { error: insertError } = await supabaseAdmin
+        // Encrypt tokens for secure storage
+        const encryptedAccessToken = await encryptToken(accessToken);
+        const encryptedRefreshToken = await encryptToken('service_account_token');
+        
+        // Store admin credentials in database with encryption
+        const credentialData = {
+          admin_email: serviceAccountKey.client_email,
+          access_token: accessToken, // Legacy field for compatibility
+          refresh_token: 'service_account_token', // Legacy field
+          encrypted_access_token: encryptedAccessToken,
+          encrypted_refresh_token: encryptedRefreshToken,
+          token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+          domain: extractDomainFromEmail(serviceAccountKey.client_email),
+          scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/admin.directory.user.readonly'],
+          token_version: 1,
+          rotation_count: 0,
+          security_flags: {
+            encrypted: true,
+            last_rotation: new Date().toISOString(),
+            encryption_method: 'AES-GCM'
+          }
+        };
+
+        const { data: insertedCredential, error: insertError } = await supabaseAdmin
           .from('admin_google_credentials')
-          .upsert({
-            admin_email: serviceAccountKey.client_email,
-            access_token: accessToken,
-            refresh_token: 'service_account_token',
-            token_expires_at: new Date(Date.now() + 3600000).toISOString(),
-            domain: extractDomainFromEmail(serviceAccountKey.client_email),
-            scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/admin.directory.user.readonly']
-          });
+          .upsert(credentialData, { onConflict: 'admin_email' })
+          .select('id')
+          .single();
 
         if (insertError) {
           throw insertError;
         }
 
+        // Log the credential creation
+        await logCredentialAccess(insertedCredential.id, 'create', req, true);
+
         return new Response(JSON.stringify({ 
           success: true, 
-          message: 'Google Service Account connected successfully',
-          serviceAccountEmail: serviceAccountKey.client_email
+          message: 'Google Service Account connected successfully with enhanced security',
+          serviceAccountEmail: serviceAccountKey.client_email,
+          securityFeatures: ['token_encryption', 'audit_logging', 'rotation_tracking']
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
