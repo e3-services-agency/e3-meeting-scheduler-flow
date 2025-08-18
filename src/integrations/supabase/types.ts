@@ -20,10 +20,16 @@ export type Database = {
           admin_email: string
           created_at: string
           domain: string
+          encrypted_access_token: string | null
+          encrypted_refresh_token: string | null
           id: string
+          last_used_at: string | null
           refresh_token: string
+          rotation_count: number | null
           scopes: string[]
+          security_flags: Json | null
           token_expires_at: string
+          token_version: number | null
           updated_at: string
         }
         Insert: {
@@ -31,10 +37,16 @@ export type Database = {
           admin_email: string
           created_at?: string
           domain: string
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
           id?: string
+          last_used_at?: string | null
           refresh_token: string
+          rotation_count?: number | null
           scopes?: string[]
+          security_flags?: Json | null
           token_expires_at: string
+          token_version?: number | null
           updated_at?: string
         }
         Update: {
@@ -42,10 +54,16 @@ export type Database = {
           admin_email?: string
           created_at?: string
           domain?: string
+          encrypted_access_token?: string | null
+          encrypted_refresh_token?: string | null
           id?: string
+          last_used_at?: string | null
           refresh_token?: string
+          rotation_count?: number | null
           scopes?: string[]
+          security_flags?: Json | null
           token_expires_at?: string
+          token_version?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -282,6 +300,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      google_credentials_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          credential_id: string | null
+          edge_function_name: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          credential_id?: string | null
+          edge_function_name?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          credential_id?: string | null
+          edge_function_name?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_credentials_audit_log_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "admin_google_credentials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       landing_page_settings: {
         Row: {
@@ -587,6 +649,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      encrypt_token: {
+        Args: { token: string }
+        Returns: string
+      }
       is_admin_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
