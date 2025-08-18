@@ -640,7 +640,22 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_booking_display: {
+        Row: {
+          logo_url: string | null
+        }
+        Relationships: []
+      }
+      public_landing_display: {
+        Row: {
+          cta_text: string | null
+          hero_description: string | null
+          hero_title: string | null
+          show_features: boolean | null
+          show_how_it_works: boolean | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_access_meeting: {
