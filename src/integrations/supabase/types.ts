@@ -700,14 +700,6 @@ export type Database = {
       }
     }
     Functions: {
-      audit_google_credentials_access: {
-        Args: {
-          action_type: string
-          additional_info?: Json
-          credential_id_param?: string
-        }
-        Returns: undefined
-      }
       can_access_meeting: {
         Args: { meeting_id: string; user_email: string }
         Returns: boolean
@@ -720,14 +712,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      log_credential_access: {
-        Args: {
-          action_param: string
-          credential_id_param: string
-          success_param?: boolean
-        }
-        Returns: undefined
-      }
       rotate_google_credentials: {
         Args: {
           credential_id_param: string
@@ -736,6 +720,10 @@ export type Database = {
           new_expires_at: string
         }
         Returns: boolean
+      }
+      simple_audit_log: {
+        Args: { action_type: string; record_id?: string; table_name: string }
+        Returns: undefined
       }
     }
     Enums: {
