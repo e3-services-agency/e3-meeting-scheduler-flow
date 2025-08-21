@@ -252,26 +252,53 @@ const TeamConfig: React.FC = () => {
   };
 
   const handleDeleteTeam = async (teamId: string, teamName: string) => {
-    if (!confirm(`Are you sure you want to delete ${teamName}? This action cannot be undone.`)) return;
+    if (!confirm(`Are you sure you want to delete ${teamName}? This will also delete all related meetings and assignments. This action cannot be undone.`)) return;
 
     try {
-      const { error } = await supabase
+      // First, check if there are any meetings associated with this team
+      const { data: meetings, error: meetingsError } = await supabase
+        .from('meetings')
+        .select('id')
+        .eq('client_team_id', teamId);
+
+      if (meetingsError) throw meetingsError;
+
+      // Delete all meetings associated with this team first
+      if (meetings && meetings.length > 0) {
+        const { error: deleteMeetingsError } = await supabase
+          .from('meetings')
+          .delete()
+          .eq('client_team_id', teamId);
+
+        if (deleteMeetingsError) throw deleteMeetingsError;
+      }
+
+      // Delete team member assignments
+      const { error: deleteAssignmentsError } = await supabase
+        .from('team_member_client_teams')
+        .delete()
+        .eq('client_team_id', teamId);
+
+      if (deleteAssignmentsError) throw deleteAssignmentsError;
+
+      // Finally, delete the client team
+      const { error: deleteTeamError } = await supabase
         .from('client_teams')
         .delete()
         .eq('id', teamId);
 
-      if (error) throw error;
+      if (deleteTeamError) throw deleteTeamError;
 
       refetch();
       toast({
         title: "Success",
-        description: "Client team deleted successfully",
+        description: "Client team and all related data deleted successfully",
       });
     } catch (error) {
       console.error('Error deleting team:', error);
       toast({
         title: "Error",
-        description: "Failed to delete client team",
+        description: error instanceof Error ? error.message : "Failed to delete client team",
         variant: "destructive",
       });
     }
