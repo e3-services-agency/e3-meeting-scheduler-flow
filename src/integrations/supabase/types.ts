@@ -597,6 +597,13 @@ export type Database = {
             referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "team_member_client_teams_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members_with_roles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       team_members: {
@@ -610,6 +617,7 @@ export type Database = {
           is_active: boolean
           name: string
           role: string
+          role_id: string
           updated_at: string
         }
         Insert: {
@@ -622,6 +630,7 @@ export type Database = {
           is_active?: boolean
           name: string
           role: string
+          role_id: string
           updated_at?: string
         }
         Update: {
@@ -634,9 +643,18 @@ export type Database = {
           is_active?: boolean
           name?: string
           role?: string
+          role_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -655,6 +673,31 @@ export type Database = {
           show_how_it_works: boolean | null
         }
         Relationships: []
+      }
+      team_members_with_roles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          google_calendar_id: string | null
+          google_photo_url: string | null
+          google_profile_data: Json | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          role_description: string | null
+          role_id: string | null
+          role_name: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "member_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

@@ -4,6 +4,7 @@ export interface TeamMemberConfig {
   name: string;
   email: string;
   role: string;
+  roleId: string; // Add role_id for foreign key relationship
   clientTeams: ClientTeam[]; // Changed from single clientTeam to array
   googleCalendarConnected: boolean;
   googleCalendarId?: string;

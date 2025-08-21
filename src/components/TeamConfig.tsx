@@ -99,12 +99,25 @@ const TeamConfig: React.FC = () => {
 
   const handleSaveMember = async (memberId: string) => {
     try {
-      // Update member details
+      // Find the role_id for the selected role name
+      const { data: roleData, error: roleError } = await supabase
+        .from('member_roles')
+        .select('id')
+        .eq('name', editData.role)
+        .eq('is_active', true)
+        .single();
+
+      if (roleError) {
+        console.error('Error finding role:', roleError);
+        throw new Error('Selected role not found');
+      }
+
+      // Update member details with role_id
       const { error: memberError } = await supabase
         .from('team_members')
         .update({
           name: editData.name,
-          role: editData.role,
+          role_id: roleData.id,
           is_active: editData.is_active
         })
         .eq('id', memberId);

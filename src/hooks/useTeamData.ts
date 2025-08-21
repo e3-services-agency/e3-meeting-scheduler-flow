@@ -41,11 +41,10 @@ export const useTeamData = () => {
 
   const fetchTeamMembers = async () => {
     try {
-      // First get team members
+      // Use the new view that joins team members with their roles
       const { data: membersData, error: membersError } = await (supabase as any)
-        .from('team_members')
+        .from('team_members_with_roles')
         .select('*')
-        .eq('is_active', true)
         .order('name');
 
       if (membersError) {
@@ -101,12 +100,13 @@ export const useTeamData = () => {
           id: member.id,
           name: member.name,
           email: member.email,
-          role: member.role,
+          role: member.role_name, // Now using role_name from the view
+          roleId: member.role_id, // Add role_id for updates
           clientTeams,
           googleCalendarConnected: !!member.google_calendar_id,
           googleCalendarId: member.google_calendar_id,
-          google_photo_url: member.google_photo_url, // Added this!
-          google_profile_data: member.google_profile_data, // Added this!
+          google_photo_url: member.google_photo_url,
+          google_profile_data: member.google_profile_data,
           isActive: member.is_active,
           createdAt: member.created_at,
           updatedAt: member.updated_at
