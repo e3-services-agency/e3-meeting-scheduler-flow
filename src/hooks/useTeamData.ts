@@ -41,11 +41,9 @@ export const useTeamData = () => {
 
   const fetchTeamMembers = async () => {
     try {
-      // Use the new view that joins team members with their roles
+      // Use the new secure function that enforces admin access
       const { data: membersData, error: membersError } = await (supabase as any)
-        .from('team_members_with_roles')
-        .select('*')
-        .order('name');
+        .rpc('get_team_members_with_roles');
 
       if (membersError) {
         console.error('Error fetching team members:', membersError);

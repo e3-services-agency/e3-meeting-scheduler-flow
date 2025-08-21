@@ -597,13 +597,6 @@ export type Database = {
             referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "team_member_client_teams_team_member_id_fkey"
-            columns: ["team_member_id"]
-            isOneToOne: false
-            referencedRelation: "team_members_with_roles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       team_members: {
@@ -674,31 +667,6 @@ export type Database = {
         }
         Relationships: []
       }
-      team_members_with_roles: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          google_calendar_id: string | null
-          google_photo_url: string | null
-          google_profile_data: Json | null
-          id: string | null
-          is_active: boolean | null
-          name: string | null
-          role_description: string | null
-          role_id: string | null
-          role_name: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_members_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "member_roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       can_access_meeting: {
@@ -708,6 +676,23 @@ export type Database = {
       encrypt_token: {
         Args: { token: string }
         Returns: string
+      }
+      get_team_members_with_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          google_calendar_id: string
+          google_photo_url: string
+          google_profile_data: Json
+          id: string
+          is_active: boolean
+          name: string
+          role_description: string
+          role_id: string
+          role_name: string
+          updated_at: string
+        }[]
       }
       rotate_google_credentials: {
         Args: {
