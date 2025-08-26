@@ -14,8 +14,6 @@ import AdminSettings from "./pages/AdminSettings";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
-import { inject } from "@vercel/analytics";
-inject(); // Initialize Vercel Analytics
 
 const queryClient = new QueryClient();
 
