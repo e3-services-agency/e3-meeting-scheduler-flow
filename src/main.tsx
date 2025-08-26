@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/react";
 import "./index.css";
 
 import Landing from "./pages/Landing";
@@ -25,27 +26,32 @@ createRoot(document.getElementById("root")!).render(
           <Routes>
             {/* Client booking pages */}
             <Route path="/book/:clientSlug" element={<ClientBooking />} />
-            
+
             {/* Authentication */}
             <Route path="/auth" element={<Auth />} />
-            
+
             {/* Protected admin routes */}
-            <Route path="/admin-settings" element={
-              <ProtectedRoute>
-                {(user) => (
-                  <AdminProtectedRoute user={user}>
-                    <AdminSettings />
-                  </AdminProtectedRoute>
-                )}
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/admin-settings"
+              element={
+                <ProtectedRoute>
+                  {(user) => (
+                    <AdminProtectedRoute user={user}>
+                      <AdminSettings />
+                    </AdminProtectedRoute>
+                  )}
+                </ProtectedRoute>
+              }
+            />
+
             {/* Landing page */}
             <Route path="/" element={<Landing />} />
-            
+
             {/* 404 page */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+
+          <Analytics />
         </BrowserRouter>
         <Toaster />
       </TooltipProvider>
