@@ -18,36 +18,45 @@ interface LandingPageSettings {
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
   const [settings, setSettings] = useState<LandingPageSettings>({
-    default_client_team_slug: 'atr',
+    default_client_team_slug: null, // Start with null, as we don't know the slug yet
     cta_text: 'Start Booking',
     hero_title: 'The smart way to bring the right people to the table',
     hero_description: 'Connect with E3 team members and schedule meetings effortlessly.',
     show_how_it_works: true,
     show_features: true,
     logo_link: 'https://e3-services.com',
-    footer_copyright_text: '© 2025 E3 Services. All rights reserved.',
+    footer_copyright_text: `© ${new Date().getFullYear()} E3 Services. All rights reserved.`,
   });
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('landing_page_settings')
+          .select('*')
+          .eq('is_active', true)
+          .single();
+
+        if (error) {
+          // If there's an error, log it. The page will use the default settings.
+          console.error('Could not fetch settings from Supabase:', error.message);
+        }
+
+        if (data) {
+          setSettings(data);
+        }
+      } catch (error) {
+        console.error('Error fetching landing page settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
     fetchSettings();
   }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('landing_page_settings')
-        .select('*')
-        .eq('is_active', true)
-        .single();
-
-      if (data) {
-        setSettings(data);
-      }
-    } catch (error) {
-      console.error('Error fetching landing page settings:', error);
-    }
-  };
 
   const bookingSteps = [
     { icon: Users, label: 'SELECT TEAM', description: 'Choose team members' },
@@ -56,8 +65,15 @@ const Landing = () => {
   ];
 
   const handleStartBooking = () => {
-    const teamSlug = settings.default_client_team_slug || 'atr';
-    navigate(`/book/${teamSlug}`);
+    // The button will be disabled if settings.default_client_team_slug is null,
+    // so this check is an extra safeguard.
+    if (!settings.default_client_team_slug) {
+        console.error("Booking cannot start: default client team slug is not set.");
+        // As a fallback, you could navigate to a default or show an error.
+        // For now, we'll just prevent navigation.
+        return;
+    }
+    navigate(`/book/${settings.default_client_team_slug}`);
   };
 
   return (
@@ -93,13 +109,15 @@ const Landing = () => {
             </p>
             <Button 
               onClick={handleStartBooking}
-              className="bg-e3-emerald text-e3-space-blue hover:bg-e3-emerald/90 text-xl px-12 py-6 font-bold rounded-lg transition-colors"
+              // --- CHANGE 5: Disable button while loading or if slug is not set ---
+              disabled={loading || !settings.default_client_team_slug}
+              className="bg-e3-emerald text-e3-space-blue hover:bg-e3-emerald/90 text-xl px-12 py-6 font-bold rounded-lg transition-all disabled:bg-gray-500 disabled:cursor-not-allowed"
             >
-              {settings.cta_text}
+              {loading ? 'Loading...' : settings.cta_text}
             </Button>
           </div>
 
-          {/* Booking Steps */}
+          {/* Booking Steps (No changes needed below) */}
           {settings.show_how_it_works && (
             <div className="mb-20">
               <h3 className="text-3xl font-bold mb-12 text-e3-white">How it works</h3>
