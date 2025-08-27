@@ -53,38 +53,21 @@ const ClientBooking: React.FC = () => {
       }
 
       try {
-        console.log('Loading client team for slug:', clientSlug);
-        
-        // More robust slug to name matching using case-insensitive search
-        const { data: teams, error: teamsError } = await supabase
+        console.log('Fetching team for slug:', clientSlug);
+        const { data: team, error } = await supabase
           .from('client_teams')
           .select('*')
-          .eq('is_active', true);
+          .eq('booking_slug', clientSlug)
+          .eq('is_active', true)
+          .single(); // .single() expects exactly one result
 
-        if (teamsError) {
-          console.error('Error fetching teams:', teamsError);
-          navigate('/');
-          return;
-        }
+        // The client-side filtering logic is no longer needed.
 
-        console.log('Available teams:', teams?.map(t => ({ 
-          id: t.id, 
-          name: t.name, 
-          booking_slug: t.booking_slug || t.name.toLowerCase().replace(/\s+/g, '-')
-        })));
-
-        // Find team by slug - use booking_slug if available, otherwise fall back to name-based slug
-        const team = teams?.find(t => {
-          const teamSlug = t.booking_slug || t.name.toLowerCase().replace(/\s+/g, '-');
-          console.log(`Comparing team "${t.name}" (slug: "${teamSlug}") with "${clientSlug}"`);
-          return teamSlug === clientSlug?.toLowerCase();
-        });
-
-        if (!team) {
-          console.error('Client team not found for slug:', clientSlug);
-          console.error('Available team slugs:', teams?.map(t => t.booking_slug || t.name.toLowerCase().replace(/\s+/g, '-')));
-          // Set loading to false so the "Client Not Found" message shows
+        if (error) {
+          // This error will trigger if no team is found or if multiple teams share a slug
+          console.error('Error fetching team for slug:', clientSlug, error.message);
           setLoading(false);
+          // The !clientTeam check below will show the "Client Not Found" message
           return;
         }
 
@@ -99,11 +82,12 @@ const ClientBooking: React.FC = () => {
         setAppState(prev => ({ 
           ...prev, 
           clientTeamId: team.id,
-          bookingTitle: title // <-- The crucial addition
+          bookingTitle: title
         }));
 
       } catch (error) {
-        console.error('Error loading client team:', error);
+        // This catch block will handle network errors etc.
+        console.error('An unexpected error occurred while loading client team:', error);
         navigate('/');
       } finally {
         setLoading(false);
