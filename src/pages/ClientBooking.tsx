@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AppState, TeamMember } from '../types/scheduling'; // Assuming you have a types file
+import { AppState } from '../types/scheduling';
 import ProgressBar from '../components/ProgressBar';
 import TeamStep from '../components/steps/TeamStep';
 import AvailabilityStep from '../components/steps/AvailabilityStep';
@@ -10,89 +10,91 @@ import ConfirmationStep from '../components/steps/ConfirmationStep';
 import { supabase } from '../integrations/supabase/client';
 import e3Logo from '../assets/e3-logo.png';
 
-
 const ClientBooking: React.FC = () => {
   const { clientSlug } = useParams<{ clientSlug: string }>();
   const navigate = useNavigate();
-  
-  // Consolidate state here
   const [clientTeam, setClientTeam] = useState<any>(null);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const [appState, setAppState] = useState<AppState>({
+  const initialState: AppState = {
     currentStep: 1,
     totalSteps: 5,
-    duration: 30,
+    duration: 30, // Default to 30 minutes
     requiredMembers: new Set<string>(),
     optionalMembers: new Set<string>(),
     selectedDate: null,
     selectedTime: null,
     guestEmails: [],
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone: 'UTC',
     timeFormat: '24h',
     bookingTitle: '',
     bookingDescription: '',
     clientTeamId: '',
     steps: [
-      { name: 'TEAM' }, { name: 'DATE & TIME' }, { name: 'YOUR INFO' }, { name: 'GUESTS' }, { name: 'CONFIRM' }
+      { name: 'TEAM' },
+      { name: 'DATE & TIME' },
+      { name: 'YOUR INFO' },
+      { name: 'GUESTS' },
+      { name: 'CONFIRM' }
     ]
-  });
+  };
+
+  const [appState, setAppState] = useState<AppState>(initialState);
 
   useEffect(() => {
-    const loadBookingData = async () => {
+    // Auto-detect user timezone
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setAppState(prev => ({ ...prev, timezone: userTimezone }));
+
+    const loadClientTeam = async () => {
       if (!clientSlug) {
         navigate('/');
         return;
       }
-      setLoading(true);
-      setError(null);
 
       try {
-        const { data: teamData, error: dbError } = await supabase
+        console.log('Fetching team for slug:', clientSlug);
+        const { data: team, error } = await supabase
           .from('client_teams')
-          .select(`
-            *,
-            client_team_members (
-              team_members (
-                *,
-                roles (name)
-              )
-            )
-          `)
+          .select('*')
           .eq('booking_slug', clientSlug)
           .eq('is_active', true)
-          .single();
+          .single(); // .single() expects exactly one result
 
-        if (dbError || !teamData) {
-          throw new Error(dbError?.message || 'Client team not found.');
+        // The client-side filtering logic is no longer needed.
+
+        if (error) {
+          // This error will trigger if no team is found or if multiple teams share a slug
+          console.error('Error fetching team for slug:', clientSlug, error.message);
+          setLoading(false);
+          // The !clientTeam check below will show the "Client Not Found" message
+          return;
         }
 
-        setClientTeam(teamData);
+        console.log('Found team:', team);
+        setClientTeam(team);
 
-        const members = teamData.client_team_members.map((m: any) => ({
-          ...m.team_members,
-          role_name: m.team_members.roles?.name || 'Team Member', // Defensive check for role
-        }));
-        setTeamMembers(members);
+        // Construct the title using the team's actual name
+        const title = `${team.name} x E3`; 
+        console.log('Setting initial booking title:', title);
 
+        // Update the app state with BOTH the clientTeamId and the new bookingTitle
         setAppState(prev => ({ 
           ...prev, 
-          clientTeamId: teamData.id,
-          bookingTitle: `${teamData.name} x E3`
+          clientTeamId: team.id,
+          bookingTitle: title
         }));
 
-      } catch (err: any) {
-        console.error('Error loading booking data:', err.message);
-        setError('Could not load the requested booking page.');
-        setClientTeam(null); // Ensure we show not found page on error
+      } catch (error) {
+        // This catch block will handle network errors etc.
+        console.error('An unexpected error occurred while loading client team:', error);
+        navigate('/');
       } finally {
         setLoading(false);
       }
     };
 
-    loadBookingData();
+    loadClientTeam();
   }, [clientSlug, navigate]);
 
   const goNext = () => {
@@ -112,9 +114,6 @@ const ClientBooking: React.FC = () => {
   };
 
   const renderStep = () => {
-    // Only render steps if we are not loading and have the required data
-    if (loading) return null;
-
     const stepProps = {
       appState,
       onNext: goNext,
@@ -124,17 +123,18 @@ const ClientBooking: React.FC = () => {
 
     switch (appState.currentStep) {
       case 1:
-        return <TeamStep {...stepProps} members={teamMembers} />;
+        console.log('PARENT (ClientBooking) is sending these props:', { members: teamMembers });
+        return <TeamStep {...stepProps} clientTeamFilter={clientTeam?.id} />;
       case 2:
-        return <AvailabilityStep {...stepProps} teamMembers={teamMembers} />;
+        return <AvailabilityStep {...stepProps} />;
       case 3:
         return <BookerInfoStep {...stepProps} />;
       case 4:
         return <InviteStep {...stepProps} />;
       case 5:
-        return <ConfirmationStep {...stepProps} teamMembers={teamMembers} />;
+        return <ConfirmationStep {...stepProps} />;
       default:
-        return <TeamStep {...stepProps} members={teamMembers} />;
+        return <TeamStep {...stepProps} clientTeamFilter={clientTeam?.id} />;
     }
   };
 
@@ -149,13 +149,12 @@ const ClientBooking: React.FC = () => {
     );
   }
 
-  // Handle both error state and not found state
-  if (error || !clientTeam) {
+  if (!clientTeam) {
     return (
       <div className="min-h-screen bg-e3-space-blue p-6 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-e3-flame mb-4">Client Not Found</h1>
-          <p className="text-e3-white/80">{error || 'The requested client booking page could not be found.'}</p>
+          <p className="text-e3-white/80">The requested client booking page could not be found.</p>
         </div>
       </div>
     );
@@ -165,18 +164,30 @@ const ClientBooking: React.FC = () => {
       <div className="min-h-screen bg-e3-space-blue p-4 sm:p-6">
         <div className="max-w-4xl mx-auto">
           <header className="mb-6">
-             <a href={`https://e3-services.com?utm_source=booking&utm_medium=referral&utm_campaign=${clientSlug}`} target="_blank" rel="noopener noreferrer">
-                <img src={e3Logo} alt="E3 Logo" className="h-12 hover:opacity-90 transition-opacity cursor-pointer" />
+            <div className="flex items-center justify-between mb-4">
+              <a 
+                href={`https://e3-services.com?utm_source=booking&utm_medium=referral&utm_campaign=${clientSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img 
+                  src={e3Logo} 
+                  alt="E3 Logo" 
+                  className="h-12 hover:opacity-90 transition-opacity cursor-pointer"
+                />
               </a>
               <div className="text-center flex-1">
                 <h1 className="text-3xl font-bold text-e3-emerald">Schedule a Meeting</h1>
                 <p className="text-e3-white/60 text-sm mt-1">Follow the steps below to book your session.</p>
               </div>
               <div className="w-12"></div> {/* Spacer for balance */}
+            </div>
           </header>
           
           <div className="mb-4">
-            <ProgressBar appState={appState} />
+            <ProgressBar 
+              appState={appState}
+            />
           </div>
           
           <main className="px-2 sm:px-0">
