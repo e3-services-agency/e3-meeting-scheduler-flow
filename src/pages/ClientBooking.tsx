@@ -91,7 +91,6 @@ const ClientBooking: React.FC = () => {
         console.log('Found team:', team);
         setClientTeam(team);
 
-        // --- FIX APPLIED HERE ---
         // Construct the title using the team's actual name
         const title = `${team.name} x E3`; 
         console.log('Setting initial booking title:', title);
@@ -102,7 +101,6 @@ const ClientBooking: React.FC = () => {
           clientTeamId: team.id,
           bookingTitle: title // <-- The crucial addition
         }));
-        // --- END OF FIX ---
 
       } catch (error) {
         console.error('Error loading client team:', error);
