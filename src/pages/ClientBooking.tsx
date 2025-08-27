@@ -54,6 +54,7 @@ const ClientBooking: React.FC = () => {
 
       try {
         console.log('Fetching team for slug:', clientSlug);
+        
         const { data: team, error } = await supabase
           .from('client_teams')
           .select('*')
@@ -123,7 +124,6 @@ const ClientBooking: React.FC = () => {
 
     switch (appState.currentStep) {
       case 1:
-        console.log('PARENT (ClientBooking) is sending these props:', { members: teamMembers });
         return <TeamStep {...stepProps} clientTeamFilter={clientTeam?.id} />;
       case 2:
         return <AvailabilityStep {...stepProps} />;
