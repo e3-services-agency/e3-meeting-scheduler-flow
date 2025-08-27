@@ -123,6 +123,7 @@ const ClientBooking: React.FC = () => {
 
     switch (appState.currentStep) {
       case 1:
+        console.log('PARENT (ClientBooking) is sending these props:', { members: teamMembers });
         return <TeamStep {...stepProps} clientTeamFilter={clientTeam?.id} />;
       case 2:
         return <AvailabilityStep {...stepProps} />;
