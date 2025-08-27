@@ -9,7 +9,6 @@ interface TeamStepProps extends StepProps {
 }
 
 const TeamStep: React.FC<TeamStepProps> = ({ appState, onNext, onBack, onStateChange, clientTeamFilter }) => {
-  console.log('CHILD (TeamStep) received these props:', { members });
   const [error, setError] = useState('');
   const { teamMembers, loading, error: dataError } = useTeamData();
 
