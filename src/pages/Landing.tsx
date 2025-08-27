@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Calendar, Users, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client'; // Supabase client can be removed if not used elsewhere
 import e3Logo from '@/assets/e3-logo.png';
 
 interface LandingPageSettings {
-  default_client_team_slug: string | null;
+  // default_client_team_slug is no longer needed here
   cta_text: string;
   hero_title: string;
   hero_description: string;
@@ -17,11 +16,11 @@ interface LandingPageSettings {
 }
 
 const Landing = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  // Removed useNavigate and loading state
 
-  const [settings, setSettings] = useState<LandingPageSettings>({
-    default_client_team_slug: null, // Start with null, as we don't know the slug yet
+  // These settings can still be fetched if you want the text to be dynamic,
+  // but for a fully static page, the fetching logic has been removed for simplicity.
+  const [settings] = useState<LandingPageSettings>({
     cta_text: 'Start Booking',
     hero_title: 'The smart way to bring the right people to the table',
     hero_description: 'Connect with E3 team members and schedule meetings effortlessly.',
@@ -31,32 +30,7 @@ const Landing = () => {
     footer_copyright_text: `© ${new Date().getFullYear()} E3 Services. All rights reserved.`,
   });
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('landing_page_settings')
-          .select('*')
-          .eq('is_active', true)
-          .single();
-
-        if (error) {
-          // If there's an error, log it. The page will use the default settings.
-          console.error('Could not fetch settings from Supabase:', error.message);
-        }
-
-        if (data) {
-          setSettings(data);
-        }
-      } catch (error) {
-        console.error('Error fetching landing page settings:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchSettings();
-  }, []);
+  // useEffect for fetching settings has been removed.
 
   const bookingSteps = [
     { icon: Users, label: 'SELECT TEAM', description: 'Choose team members' },
@@ -65,15 +39,8 @@ const Landing = () => {
   ];
 
   const handleStartBooking = () => {
-    // The button will be disabled if settings.default_client_team_slug is null,
-    // so this check is an extra safeguard.
-    if (!settings.default_client_team_slug) {
-        console.error("Booking cannot start: default client team slug is not set.");
-        // As a fallback, you could navigate to a default or show an error.
-        // For now, we'll just prevent navigation.
-        return;
-    }
-    navigate(`/book/${settings.default_client_team_slug}`);
+    // Navigate to the specified absolute URL
+    window.location.href = 'https://connect.e3-services.com/book/co-founders';
   };
 
   return (
@@ -81,9 +48,9 @@ const Landing = () => {
       {/* Header */}
       <header className="px-6 py-8">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <a 
-            href={settings.logo_link} 
-            target="_blank" 
+          <a
+            href={settings.logo_link}
+            target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 hover:opacity-80 transition-opacity"
           >
@@ -107,13 +74,11 @@ const Landing = () => {
             <p className="text-xl md:text-2xl text-e3-white/90 mb-12 max-w-3xl mx-auto leading-relaxed">
               {settings.hero_description}
             </p>
-            <Button 
+            <Button
               onClick={handleStartBooking}
-              // --- CHANGE 5: Disable button while loading or if slug is not set ---
-              disabled={loading || !settings.default_client_team_slug}
-              className="bg-e3-emerald text-e3-space-blue hover:bg-e3-emerald/90 text-xl px-12 py-6 font-bold rounded-lg transition-all disabled:bg-gray-500 disabled:cursor-not-allowed"
+              className="bg-e3-emerald text-e3-space-blue hover:bg-e3-emerald/90 text-xl px-12 py-6 font-bold rounded-lg transition-colors"
             >
-              {loading ? 'Loading...' : settings.cta_text}
+              {settings.cta_text}
             </Button>
           </div>
 
