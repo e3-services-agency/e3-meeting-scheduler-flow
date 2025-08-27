@@ -1,73 +1,168 @@
-# Welcome to your Lovable project
+# E3 Connect – Meeting Scheduler
 
-## Project info
+A lightweight booking/meeting scheduler for E3, built with Vite + React + TypeScript and shadcn‑ui, deployed on Vercel and backed by Supabase (Auth + DB).
 
-**URL**: https://lovable.dev/projects/19685a06-8e5a-4d2f-8694-c7de095cfee6
+---
 
-## How can I edit this code?
+## Live
 
-There are several ways of editing your application.
+* **Production:** [https://connect.e3-services.com](https://connect.e3-services.com)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/19685a06-8e5a-4d2f-8694-c7de095cfee6) and start prompting.
+## Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+* **Vite** (React + TypeScript)
+* **shadcn‑ui** + **Tailwind CSS**
+* **React Router** (client‑side routing)
+* **@tanstack/react‑query** (server state)
+* **Supabase** (Auth + database)
+* **Vercel** (hosting)
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Quick Start (Local Dev)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Requirements: Node.js 18+ and npm. We recommend installing Node via [nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
-Follow these steps:
+```bash
+# 1) Clone the repo
+git clone https://github.com/e3-services-agency/e3-meeting-scheduler-flow.git
+cd e3-meeting-scheduler-flow
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 2) Install deps
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 3) Configure environment
+cp .env.example .env
+# Then set the variables (see below)
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4) Start dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Create a `.env` file in the project root with:
 
-**Use GitHub Codespaces**
+```dotenv
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+> In Vercel, set these under **Project → Settings → Environment Variables** for both **Production** and **Preview**.
 
-## What technologies are used for this project?
+### NPM Scripts
 
-This project is built with:
+```bash
+npm run dev       # start local dev server
+npm run build     # production build to /dist
+npm run preview   # preview the production build locally
+npm run lint      # lint sources
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Deployment (Vercel)
 
-Simply open [Lovable](https://lovable.dev/projects/19685a06-8e5a-4d2f-8694-c7de095cfee6) and click on Share -> Publish.
+Deploys are automatic on pushes to `main`.
 
-## Can I connect a custom domain to my Lovable project?
+### SPA Routing (Required)
 
-Yes, you can!
+Because this is a React SPA with React Router, Vercel must always serve `index.html` for deep links (e.g. `/book/:clientSlug`, `/admin-settings`). The project includes a `vercel.json` file in the repo root:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```json
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+If you add or restore this file, trigger a redeploy and **Clear/Ignore build cache** to ensure the rewrite is applied.
+
+### Custom Domain
+
+* Add your domain in **Vercel → Project → Settings → Domains** and follow the DNS prompts (Cloudflare/registrar).
+* Vercel will auto‑provision SSL (Let’s Encrypt). It may take several minutes after a DNS change.
+
+### Environment Variables on Vercel
+
+Configure under **Project → Settings → Environment Variables**:
+
+* `VITE_SUPABASE_URL`
+* `VITE_SUPABASE_ANON_KEY`
+
+Apply to **Production** and **Preview**.
+
+---
+
+## Supabase Auth Setup
+
+1. In **Supabase Dashboard → Authentication → URL Configuration** set:
+
+   * **Site URL:** `https://connect.e3-services.com`
+   * **Additional Redirect URLs:**
+
+     * `https://connect.e3-services.com/*`
+     * *(optional for previews)* `https://*.vercel.app/*`
+2. If using OAuth providers, ensure their console/apps allow the above domain(s) and use the Supabase callback: `https://<project-ref>.supabase.co/auth/v1/callback`.
+
+---
+
+## Routing & 404 Page
+
+The app defines a catch‑all route to render a custom 404 page:
+
+```tsx
+// in main.tsx (excerpt)
+<Route path="*" element={<NotFound />} />
+```
+
+Make visual updates in `src/pages/NotFound.tsx`.
+
+---
+
+## Troubleshooting
+
+**Deep links 404 in Incognito**
+
+* Ensure `vercel.json` exists in the repo root (same level as `package.json`) and matches the snippet above.
+* Redeploy with **Clear/Ignore build cache**.
+* In the deployment’s details, check the **Routes/Rewrites** section shows `/(.*) → /`.
+
+**Auth redirects fail**
+
+* Verify Supabase **Site URL** and **Additional Redirect URLs** include your production domain.
+* For protected routes (e.g., `/admin-settings`), Incognito will redirect to `/auth` until you sign in.
+
+**Build looks stale**
+
+* In Vercel → Deployment → **Redeploy** with **Clear/Ignore build cache**.
+* Confirm you’re building the latest commit SHA from GitHub.
+
+---
+
+## Project Structure (high level)
+
+```
+├─ public/                # static assets
+├─ src/
+│  ├─ pages/              # route pages (Landing, Auth, ClientBooking, AdminSettings, NotFound)
+│  ├─ components/         # shared UI/components
+│  ├─ index.css           # Tailwind entry
+│  └─ main.tsx            # app entry + routes
+├─ vercel.json            # SPA rewrites
+├─ package.json
+└─ vite.config.ts
+```
+
+---
+
+## Contributing
+
+* Create a feature branch, open a PR, and ensure a green Vercel preview build.
+
+## License
+
+Private © E3. All rights reserved.
