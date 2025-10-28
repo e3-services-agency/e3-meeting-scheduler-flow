@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Users, FileText, Loader, Link as LinkIcon, UserPlus } from 'lucide-react'; // Added UserPlus
+import { X, Users, FileText, Loader, Link as LinkIcon, UserPlus, Clock } from 'lucide-react'; // Added Clock
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { useTeamData } from '@/hooks/useTeamData'; // Import useTeamData
-import { TeamMemberConfig } from '@/types/team'; // Import TeamMemberConfig type
+import { useTeamData } from '@/hooks/useTeamData';
+import { TeamMemberConfig } from '@/types/team';
+import { BusinessHoursEditor, BusinessHoursData, DaySchedule } from './BusinessHoursEditor'; // Import the editor
 
 interface AddTeamFormProps {
 	onClose: () => void;
@@ -20,16 +21,31 @@ const generateSlug = (name: string): string => {
 		.replace(/--+/g, '-'); // Replace multiple hyphens with single hyphen
 };
 
+// Default business hours (e.g., Mon-Fri 9-5)
+const defaultSchedules: Record<string, DaySchedule> = {};
+['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(key => {
+	defaultSchedules[key] = { isOpen: true, slots: [{ start: '09:00', end: '17:00' }] };
+});
+['saturday', 'sunday'].forEach(key => {
+	defaultSchedules[key] = { isOpen: false, slots: [] };
+});
+
+const defaultBusinessHours: BusinessHoursData = {
+	timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+	schedules: defaultSchedules
+};
+
 
 const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 	const [formData, setFormData] = useState({
 		name: '',
 		description: ''
 	});
-	const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set()); // State for selected members
+	const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+	const [businessHoursData, setBusinessHoursData] = useState<BusinessHoursData>(defaultBusinessHours); // State for availability
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const { toast } = useToast();
-	const { teamMembers, loading: loadingMembers, error: membersError } = useTeamData(); // Fetch team members
+	const { teamMembers, loading: loadingMembers, error: membersError } = useTeamData();
 
 	const handleMemberToggle = (memberId: string) => {
 		setSelectedMemberIds(prev => {
@@ -55,12 +71,12 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 
 		const generatedSlug = generateSlug(trimmedName);
 		if (!generatedSlug) {
-			toast({ title: "Validation Error", description: "Could not generate a valid booking slug. Please use alphanumeric characters.", variant: "destructive" });
+			toast({ title: "Validation Error", description: "Could not generate a valid booking slug.", variant: "destructive" });
 			return;
 		}
 
 		setIsSubmitting(true);
-		let newTeamId: string | null = null; // Variable to store the new team ID
+		let newTeamId: string | null = null;
 
 		try {
 			// Step 1: Insert the new client team
@@ -72,12 +88,12 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 					is_active: true,
 					booking_slug: generatedSlug
 				})
-				.select('id') // Select the ID of the newly created team
-				.single(); // Expect a single row back
+				.select('id')
+				.single();
 
 			if (insertTeamError) {
 				if (insertTeamError.message.includes('duplicate key value violates unique constraint') && insertTeamError.message.includes('booking_slug')) {
-					throw new Error(`The generated booking slug '${generatedSlug}' already exists. Please choose a slightly different team name.`);
+					throw new Error(`The booking slug '${generatedSlug}' already exists. Please choose a different team name.`);
 				}
 				console.error('Error inserting team:', insertTeamError);
 				throw insertTeamError;
@@ -89,7 +105,7 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 			newTeamId = newTeamData.id;
 			console.log('New team created with ID:', newTeamId);
 
-			// Step 2: Insert team member relationships if members are selected
+			// Step 2: Insert team member relationships
 			const memberIdsArray = Array.from(selectedMemberIds);
 			if (newTeamId && memberIdsArray.length > 0) {
 				console.log('Adding members to team:', memberIdsArray);
@@ -97,32 +113,56 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 					team_member_id: memberId,
 					client_team_id: newTeamId
 				}));
-
 				const { error: insertMembersError } = await supabase
 					.from('team_member_client_teams')
 					.insert(relationships);
 
 				if (insertMembersError) {
 					console.error('Error inserting member relationships:', insertMembersError);
-					// Attempt to clean up the created team if member assignment fails? Or just report error?
-					// For simplicity, we'll report the error but leave the team created.
-					toast({
-						title: "Partial Success",
-						description: `Team '${trimmedName}' created, but failed to assign members: ${insertMembersError.message}`,
-						variant: "destructive", // Use destructive to highlight the member assignment failure
-					});
-					// Still call onSuccess and onClose as the team itself was created
-					onSuccess();
-					onClose();
-					return; // Exit after showing the specific error
+					// Proceed but warn about member assignment failure
+					toast({ title: "Warning", description: `Team '${trimmedName}' created, but failed to assign members: ${insertMembersError.message}`, variant: "destructive" });
+				} else {
+					console.log('Successfully added member relationships');
 				}
-				console.log('Successfully added member relationships');
 			}
 
-			// Success for both team and members (if any selected)
+			// Step 3: Insert client-specific business hours
+			if (newTeamId) {
+				console.log('Adding business hours for team:', newTeamId, businessHoursData);
+				const hoursToInsert: any = {
+					client_team_id: newTeamId,
+					timezone: businessHoursData.timezone,
+					is_active: true
+				};
+
+				Object.entries(businessHoursData.schedules).forEach(([dayKey, schedule]) => {
+					if (schedule.isOpen && schedule.slots.length > 0) {
+						// Using only the first slot for simplicity, matching the DB schema
+						hoursToInsert[`${dayKey}_start`] = schedule.slots[0].start ? `${schedule.slots[0].start}:00` : null;
+						hoursToInsert[`${dayKey}_end`] = schedule.slots[0].end ? `${schedule.slots[0].end}:00` : null;
+					} else {
+						hoursToInsert[`${dayKey}_start`] = null;
+						hoursToInsert[`${dayKey}_end`] = null;
+					}
+				});
+
+				const { error: insertHoursError } = await supabase
+					.from('client_team_business_hours')
+					.insert(hoursToInsert);
+
+				if (insertHoursError) {
+					console.error('Error inserting business hours:', insertHoursError);
+					// Proceed but warn about hours failure
+					toast({ title: "Warning", description: `Team '${trimmedName}' created, but failed to set custom hours: ${insertHoursError.message}`, variant: "destructive" });
+				} else {
+					console.log('Successfully added business hours');
+				}
+			}
+
+			// Final Success Toast
 			toast({
 				title: "Client Team Created",
-				description: `${trimmedName} created successfully${memberIdsArray.length > 0 ? ` with ${memberIdsArray.length} member(s) assigned` : ''}. Slug: ${generatedSlug}`,
+				description: `${trimmedName} created successfully with slug: ${generatedSlug}. ${memberIdsArray.length} member(s) assigned and custom hours set.`,
 			});
 
 			onSuccess();
@@ -132,11 +172,10 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 			console.error('Error in handleSubmit:', error);
 			toast({
 				title: "Error",
-				description: error instanceof Error ? error.message : 'Failed to create client team or assign members',
+				description: error instanceof Error ? error.message : 'Failed to complete team creation',
 				variant: "destructive",
 			});
-			// Optional: If team creation failed but we know the ID, attempt to delete it for cleanup
-			// This adds complexity, especially around potential race conditions or partial failures.
+			// Consider deleting the team if subsequent steps failed (requires more complex logic)
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -145,9 +184,9 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 	const slugPreview = formData.name ? generateSlug(formData.name) : '';
 
 	return (
-		// Adjusted max-h and overflow for member list
 		<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-			<div className="bg-e3-space-blue rounded-lg p-6 w-full max-w-lg border border-e3-white/10 max-h-[90vh] overflow-y-auto">
+			{/* Increased max-w-2xl and max-h for more content */}
+			<div className="bg-e3-space-blue rounded-lg p-6 w-full max-w-2xl border border-e3-white/10 max-h-[90vh] overflow-y-auto">
 				<div className="flex items-center justify-between mb-6">
 					<h2 className="text-xl font-bold text-e3-emerald">Add Client Team</h2>
 					<button
@@ -158,77 +197,70 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 					</button>
 				</div>
 
-				<form onSubmit={handleSubmit} className="space-y-4">
-					{/* Team Name */}
-					<div>
-						<label className="block text-e3-white/80 text-sm font-medium mb-2">
-							<Users className="w-4 h-4 inline mr-2" />
-							Team Name *
-						</label>
-						<input
-							type="text"
-							value={formData.name}
-							onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-							className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white placeholder-e3-white/50 focus:border-e3-azure focus:outline-none"
-							placeholder="Enter team name"
-							required
-						/>
-					</div>
-
-					{/* Slug Preview */}
-					{formData.name && (
+				<form onSubmit={handleSubmit} className="space-y-6"> {/* Increased spacing */}
+					{/* --- Basic Team Info --- */}
+					<div className="space-y-4 border-b border-e3-white/10 pb-6">
 						<div>
-							<label className="block text-e3-white/80 text-sm font-medium mb-1">
-								<LinkIcon className="w-3 h-3 inline mr-1.5" />
-								Booking Link Preview
+							<label className="block text-e3-white/80 text-sm font-medium mb-2">
+								<Users className="w-4 h-4 inline mr-2" />
+								Team Name *
 							</label>
-							<code className="block text-xs text-e3-azure bg-e3-space-blue/50 px-2 py-1 rounded border border-e3-azure/20 overflow-x-auto">
-								{window.location.origin}/book/{slugPreview || '<invalid-name>'}
-							</code>
-							<p className="text-xs text-e3-white/60 mt-1">
-								This unique link is generated from the team name. It can be edited later.
-							</p>
+							<input
+								type="text"
+								value={formData.name}
+								onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+								className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white placeholder-e3-white/50 focus:border-e3-azure focus:outline-none"
+								placeholder="Enter team name"
+								required
+							/>
 						</div>
-					)}
 
-					{/* Description */}
-					<div>
-						<label className="block text-e3-white/80 text-sm font-medium mb-2">
-							<FileText className="w-4 h-4 inline mr-2" />
-							Description (Optional)
-						</label>
-						<textarea
-							value={formData.description}
-							onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-							className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white placeholder-e3-white/50 focus:border-e3-azure focus:outline-none resize-none"
-							rows={3}
-							placeholder="Brief description of the client team"
-						/>
+						{formData.name && (
+							<div>
+								<label className="block text-e3-white/80 text-sm font-medium mb-1">
+									<LinkIcon className="w-3 h-3 inline mr-1.5" />
+									Booking Link Preview
+								</label>
+								<code className="block text-xs text-e3-azure bg-e3-space-blue/50 px-2 py-1 rounded border border-e3-azure/20 overflow-x-auto">
+									{window.location.origin}/book/{slugPreview || '<invalid-name>'}
+								</code>
+								<p className="text-xs text-e3-white/60 mt-1">
+									Generated from name. Can be edited later.
+								</p>
+							</div>
+						)}
+
+						<div>
+							<label className="block text-e3-white/80 text-sm font-medium mb-2">
+								<FileText className="w-4 h-4 inline mr-2" />
+								Description (Optional)
+							</label>
+							<textarea
+								value={formData.description}
+								onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+								className="w-full p-3 bg-e3-space-blue/50 border border-e3-white/20 rounded-lg text-e3-white placeholder-e3-white/50 focus:border-e3-azure focus:outline-none resize-none"
+								rows={2} // Reduced rows
+								placeholder="Brief description"
+							/>
+						</div>
 					</div>
 
-					{/* Team Member Selection */}
-					<div>
-						<label className="block text-e3-white/80 text-sm font-medium mb-2">
+					{/* --- Assign Members --- */}
+					<div className="space-y-2 border-b border-e3-white/10 pb-6">
+						<label className="block text-e3-white/80 text-sm font-medium">
 							<UserPlus className="w-4 h-4 inline mr-2" />
 							Assign Team Members (Optional)
 						</label>
 						{loadingMembers ? (
-							<div className="flex items-center justify-center p-4 bg-e3-space-blue/30 rounded-lg border border-e3-white/10">
-								<Loader className="w-4 h-4 animate-spin mr-2 text-e3-white/60" />
-								<span className="text-e3-white/60 text-sm">Loading members...</span>
-							</div>
+							<div className="text-center p-4 text-e3-white/60 text-sm">Loading members...</div>
 						) : membersError ? (
-							<div className="p-3 bg-e3-flame/10 border border-e3-flame/20 rounded-lg text-e3-flame text-sm">
-								Error loading team members: {membersError}
-							</div>
+							<div className="p-3 text-e3-flame text-sm">Error: {membersError}</div>
 						) : teamMembers.length === 0 ? (
-							<div className="p-3 bg-e3-space-blue/30 rounded-lg border border-e3-white/10 text-e3-white/60 text-sm">
-								No team members found. You can add them later.
-							</div>
+							<div className="p-3 text-e3-white/60 text-sm">No members found.</div>
 						) : (
-							<div className="space-y-2 max-h-48 overflow-y-auto p-3 bg-e3-space-blue/30 rounded-lg border border-e3-white/10">
+							<div className="space-y-2 max-h-40 overflow-y-auto p-2 border border-e3-white/10 rounded-lg bg-e3-space-blue/30">
 								{teamMembers.map((member: TeamMemberConfig) => (
-									<label key={member.id} className="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-e3-white/5">
+									<label key={member.id} className="flex items-center space-x-2 cursor-pointer p-1.5 rounded hover:bg-e3-white/5">
 										<input
 											type="checkbox"
 											checked={selectedMemberIds.has(member.id)}
@@ -243,9 +275,23 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 						)}
 					</div>
 
+					{/* --- Business Hours Configuration --- */}
+					<div className="space-y-2">
+						<label className="block text-e3-white/80 text-sm font-medium">
+							<Clock className="w-4 h-4 inline mr-2" />
+							Set Custom Business Hours (Optional)
+						</label>
+						<p className="text-xs text-e3-white/60 mb-3">
+							Define specific availability for this client team. If left unchanged, it will use the global default hours.
+						</p>
+						<BusinessHoursEditor
+							value={businessHoursData}
+							onChange={setBusinessHoursData}
+						/>
+					</div>
 
-					{/* Action Buttons */}
-					<div className="flex gap-3 pt-4">
+					{/* --- Action Buttons --- */}
+					<div className="flex gap-3 pt-6 border-t border-e3-white/10">
 						<button
 							type="button"
 							onClick={onClose}
