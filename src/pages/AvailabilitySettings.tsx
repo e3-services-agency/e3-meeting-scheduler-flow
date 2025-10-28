@@ -464,7 +464,7 @@ const AvailabilitySettings: React.FC = () => {
 
 								return (
 									<div key={key} className={cn(
-										"text-center p-2 rounded border",
+										"text-center p-2 rounded-lg border", // Changed to rounded-lg
 										blockClassName // Use cn utility to apply conditional classes
 									)}>
 										<div className="font-medium text-xs mb-1 uppercase">{label}</div>
@@ -520,7 +520,7 @@ const AvailabilitySettings: React.FC = () => {
 													Timezone: {currentClientHours?.timezone || 'N/A'}
 												</p>
 
-												{/* Mini Day Display Blocks for Clients - ADDED WITH COLORS */}
+												{/* Mini Day Display Blocks for Clients - UPDATED WITH COLORS */}
 												<div className="mt-3 grid grid-cols-4 md:grid-cols-7 gap-1">
 													{DAYS.map(({ key, label }) => {
 														const startTime = currentClientHours?.[`${key}_start` as keyof typeof currentClientHours];
