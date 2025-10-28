@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ArrowLeft, Users, Settings, Plus, Minus, Save, X } from 'lucide-react'; // Added Save, X, Plus, Minus
+import { Clock, ArrowLeft, Users, Settings, Plus, Minus, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input'; // Input re-added for global schedule name
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Added DialogFooter, DialogClose
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-// TimezoneSelector is now handled by the editor
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { BusinessHoursEditor, BusinessHoursData, DaySchedule } from '@/components/forms/BusinessHoursEditor'; // Import the editor
+import { cn } from '@/lib/utils'; // Import cn utility
 
 // --- Types (Keep existing ones) ---
 interface BusinessHours {
@@ -451,20 +451,24 @@ const AvailabilitySettings: React.FC = () => {
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-3">
-						{/* Display Current Global Hours */}
+						{/* Display Current Global Hours - UPDATED WITH COLORS */}
 						<div className="grid grid-cols-2 md:grid-cols-4 gap-2">
 							{DAYS.map(({ key, label }) => {
 								const startTime = businessHours?.[`${key}_start` as keyof BusinessHours];
 								const endTime = businessHours?.[`${key}_end` as keyof BusinessHours];
 								const isOpen = !!(startTime && endTime);
+								// Apply brand colors based on isOpen
 								const blockClassName = isOpen
-									? 'bg-e3-emerald/20 text-e3-emerald border-e3-emerald/30' // Green for open
-									: 'bg-e3-flame/20 text-e3-flame border-e3-flame/30'; // Red for closed
+									? 'bg-e3-emerald/20 border-e3-emerald/30 text-e3-emerald' // Green classes
+									: 'bg-e3-flame/20 border-e3-flame/30 text-e3-flame'; // Red classes
 
 								return (
-									<div key={key} className={`text-center p-2 rounded border ${blockClassName}`}>
-										<div className="font-medium text-xs mb-1">{label}</div>
-										<div className="text-xs">
+									<div key={key} className={cn(
+										"text-center p-2 rounded border",
+										blockClassName // Use cn utility to apply conditional classes
+									)}>
+										<div className="font-medium text-xs mb-1 uppercase">{label}</div>
+										<div className="text-xs font-semibold">
 											{formatTimeRange(startTime, endTime)}
 										</div>
 									</div>
@@ -515,6 +519,33 @@ const AvailabilitySettings: React.FC = () => {
 												<p className="text-e3-white/60 text-xs">
 													Timezone: {currentClientHours?.timezone || 'N/A'}
 												</p>
+
+												{/* Mini Day Display Blocks for Clients - ADDED WITH COLORS */}
+												<div className="mt-3 grid grid-cols-4 md:grid-cols-7 gap-1">
+													{DAYS.map(({ key, label }) => {
+														const startTime = currentClientHours?.[`${key}_start` as keyof typeof currentClientHours];
+														const endTime = currentClientHours?.[`${key}_end` as keyof typeof currentClientHours];
+														const isOpen = !!(startTime && endTime);
+														const blockClassName = isOpen
+															? 'bg-e3-emerald/10 border-e3-emerald/20 text-e3-emerald' // Green
+															: 'bg-e3-flame/10 border-e3-flame/20 text-e3-flame'; // Red
+
+														return (
+															<div key={key} className={cn(
+																"text-center p-1 rounded border text-[10px] leading-tight", // Smaller text
+																blockClassName
+															)}>
+																<div className="font-semibold uppercase mb-0.5">{label}</div>
+																<div>
+																	{isOpen ? formatTimeRange(startTime, endTime) : 'Closed'}
+																</div>
+																{!hasCustom && <div className="opacity-60">Global</div>}
+															</div>
+														);
+													})}
+												</div>
+												{/* End Mini Day Display Blocks */}
+
 											</div>
 
 											<div className="flex items-center gap-2 self-start sm:self-center">
