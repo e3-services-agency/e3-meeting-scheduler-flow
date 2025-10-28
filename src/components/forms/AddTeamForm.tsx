@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Users, FileText, Loader, Link as LinkIcon, UserPlus, Clock } from 'lucide-react'; // Added Clock
+import { X, Users, FileText, Loader, Link as LinkIcon, UserPlus, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useTeamData } from '@/hooks/useTeamData';
 import { TeamMemberConfig } from '@/types/team';
-import { BusinessHoursEditor, BusinessHoursData, DaySchedule } from './BusinessHoursEditor'; // Import the editor
+import { BusinessHoursEditor, BusinessHoursData, DaySchedule } from './BusinessHoursEditor';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; // Import Avatar components
 
 interface AddTeamFormProps {
 	onClose: () => void;
@@ -183,6 +184,11 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 
 	const slugPreview = formData.name ? generateSlug(formData.name) : '';
 
+	// Helper to get initials
+	const getInitials = (name: string) => {
+		return name.split(' ').map(n => n[0]).join('').toUpperCase();
+	}
+
 	return (
 		<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
 			{/* Increased max-w-2xl and max-h for more content */}
@@ -258,15 +264,21 @@ const AddTeamForm: React.FC<AddTeamFormProps> = ({ onClose, onSuccess }) => {
 						) : teamMembers.length === 0 ? (
 							<div className="p-3 text-e3-white/60 text-sm">No members found.</div>
 						) : (
-							<div className="space-y-2 max-h-40 overflow-y-auto p-2 border border-e3-white/10 rounded-lg bg-e3-space-blue/30">
+							<div className="space-y-1 max-h-40 overflow-y-auto p-2 border border-e3-white/10 rounded-lg bg-e3-space-blue/30">
 								{teamMembers.map((member: TeamMemberConfig) => (
-									<label key={member.id} className="flex items-center space-x-2 cursor-pointer p-1.5 rounded hover:bg-e3-white/5">
+									<label key={member.id} className="flex items-center space-x-3 cursor-pointer p-1.5 rounded hover:bg-e3-white/5">
 										<input
 											type="checkbox"
 											checked={selectedMemberIds.has(member.id)}
 											onChange={() => handleMemberToggle(member.id)}
 											className="w-4 h-4 text-e3-azure bg-e3-space-blue/50 border-e3-white/20 rounded focus:ring-e3-azure focus:ring-offset-e3-space-blue"
 										/>
+										<Avatar className="h-6 w-6 text-xs border border-e3-white/10"> {/* Added Avatar */}
+											<AvatarImage src={member.google_photo_url || ''} alt={member.name} />
+											<AvatarFallback className="bg-e3-azure/20 text-e3-azure">
+												{getInitials(member.name)}
+											</AvatarFallback>
+										</Avatar>
 										<span className="text-e3-white/80 text-sm">{member.name}</span>
 										<span className="text-e3-white/50 text-xs">({member.role})</span>
 									</label>
