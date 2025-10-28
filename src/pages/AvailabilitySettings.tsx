@@ -3,7 +3,7 @@ import { Clock, ArrowLeft, Users, Settings, Plus, Minus, Save, X } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-// Input, Switch removed as they are now in the editor
+import { Input } from '@/components/ui/input'; // Input re-added for global schedule name
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog'; // Added DialogFooter, DialogClose
 import { Badge } from '@/components/ui/badge';
 // TimezoneSelector is now handled by the editor
@@ -456,10 +456,15 @@ const AvailabilitySettings: React.FC = () => {
 							{DAYS.map(({ key, label }) => {
 								const startTime = businessHours?.[`${key}_start` as keyof BusinessHours];
 								const endTime = businessHours?.[`${key}_end` as keyof BusinessHours];
+								const isOpen = !!(startTime && endTime);
+								const blockClassName = isOpen
+									? 'bg-e3-emerald/20 text-e3-emerald border-e3-emerald/30' // Green for open
+									: 'bg-e3-flame/20 text-e3-flame border-e3-flame/30'; // Red for closed
+
 								return (
-									<div key={key} className="text-center p-2 rounded bg-e3-space-blue/20">
-										<div className="text-e3-white font-medium text-xs mb-1">{label}</div>
-										<div className="text-e3-white/70 text-xs">
+									<div key={key} className={`text-center p-2 rounded border ${blockClassName}`}>
+										<div className="font-medium text-xs mb-1">{label}</div>
+										<div className="text-xs">
 											{formatTimeRange(startTime, endTime)}
 										</div>
 									</div>
@@ -588,3 +593,4 @@ const AvailabilitySettings: React.FC = () => {
 };
 
 export default AvailabilitySettings;
+
